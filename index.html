@@ -10,6 +10,31 @@
 
 <link rel="canonical" href="https://havila.company/">
 <link rel="stylesheet" href="/styles.css">
+<style>
+/* Homepage Hero refinements */
+.hero-grid{
+  grid-template-columns:minmax(0,.88fr) minmax(560px,1.12fr);
+  align-items:center;
+}
+.hero-image-large{
+  width:100%;
+  max-width:none;
+}
+.hero-image-large img{
+  width:100%;
+  display:block;
+  object-fit:cover;
+}
+@media(max-width:820px){
+  .hero-grid{
+    grid-template-columns:1fr;
+  }
+  .hero-image-large{
+    width:100%;
+  }
+}
+</style>
+
 
 <meta property="og:type" content="website">
 <meta property="og:title" content="Havila Learning | Small Activities. Brighter Futures.">
@@ -37,9 +62,7 @@
 
 <a class="skip" href="#main">Skip to content</a>
 
-<div class="topbar">
-28 Daily Learning Activities — simple, screen-free learning ideas for young children.
-</div>
+
 
 <header class="site-header">
 <div class="container nav">
@@ -60,13 +83,7 @@
 <a href="/ebooks/">eBooks</a>
 <a href="/about/">About</a>
 
-<a
-class="btn btn-primary"
-href="https://payhip.com/b/dE4pD"
-target="_blank"
-rel="noopener">
-Get the eBook
-</a>
+<a href="/contact/">Contact</a>
 
 </nav>
 </div>
@@ -104,10 +121,8 @@ Explore Learning Activities
 
 <a
 class="btn btn-secondary"
-href="https://payhip.com/b/dE4pD"
-target="_blank"
-rel="noopener">
-Get the English eBook
+href="/free-resources/">
+Explore Free Resources
 </a>
 
 </div>
@@ -115,11 +130,11 @@ Get the English eBook
 </div>
 
 
-<div class="hero-card hero-image">
+<div class="hero-card hero-image hero-image-large">
 
 <img
-src="/assets/hero-counting-activity-havila-learning.png"
-alt="Parent and child doing a hands-on counting activity at home">
+src="/assets/warm_bright_cozy_indoor_scene_of_a_mother_and_da.png"
+alt="Parent and child learning together through a hands-on creative activity at home">
 
 </div>
 
