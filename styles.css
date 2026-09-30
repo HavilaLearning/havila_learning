@@ -53,3 +53,9 @@
 .start-icon{width:52px;height:52px;flex:0 0 52px;border-radius:16px;background:#EAF7F1;display:grid;place-items:center;font-size:1.45rem}
 .start-card h3{margin:.1rem 0 .35rem}.start-card p{margin:0 0 .55rem;color:var(--muted)}.start-card span:last-child{font-weight:800;color:var(--teal2)}
 @media(max-width:900px){.start-grid{grid-template-columns:1fr 1fr}}@media(max-width:600px){.start-grid{grid-template-columns:1fr}}
+
+/* Consistent age-card typography */
+.age-link,.age-body{text-align:left}
+.age-body{min-height:142px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start}
+.age-body p{margin:.35rem 0;line-height:1.45}
+.age-body span{margin-top:auto}
