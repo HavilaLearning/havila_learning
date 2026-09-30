@@ -59,3 +59,21 @@
 .age-body{min-height:142px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start}
 .age-body p{margin:.35rem 0;line-height:1.45}
 .age-body span{margin-top:auto}
+
+/* Inner-page typography aligned with the homepage */
+.page-hero .section-head.center{text-align:left;margin-left:0;margin-right:0;max-width:920px}
+.page-hero .section-head.center .lead{margin-left:0 !important;margin-right:0 !important}
+.page-hero h1{max-width:900px}
+
+/* Keep the accessibility skip link hidden until keyboard focus */
+.skip{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
+.skip:focus{position:fixed;left:1rem;top:1rem;width:auto;height:auto;overflow:visible;padding:.65rem 1rem;background:#fff;color:var(--navy);border:2px solid var(--teal);border-radius:10px;z-index:200;box-shadow:var(--sm)}
+
+/* Age imagery: distinct family scenes and consistent crop */
+.age-photo{background:#eaf2ef}
+.age-photo img{object-position:center}
+
+/* Inner activity cards keep all copy consistently left aligned */
+.activity-card{text-align:left}
+.activity-card>div{text-align:left}
+.activity-card h3,.activity-card p,.activity-card .meta{margin-left:0;margin-right:0}
