@@ -80,7 +80,7 @@
 
 
 /* Bilingual navigation */
-.language-switch{display:inline-flex;align-items:center;gap:.42rem;margin-left:.35rem;padding:.28rem .55rem;border:1px solid #d8e7e2;border-radius:999px;font-size:.78rem;font-weight:800;white-space:nowrap}
+.language-switch{display:inline-flex;align-items:center;gap:.42rem;margin-left:.35rem;padding:.28rem .55rem;border:1px solid #d8e7e2;border-radius:999px;font-size:.78rem;font-weight:800;white-space:nowrap;flex:0 0 auto;visibility:visible;opacity:1}
 .language-switch a{padding:0!important;color:var(--muted);text-decoration:none!important}
 .language-switch a.active{color:var(--navy)}
 .language-switch a:hover{color:var(--teal)}
