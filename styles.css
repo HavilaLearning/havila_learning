@@ -85,3 +85,8 @@
 .language-switch a.active{color:var(--navy)}
 .language-switch a:hover{color:var(--teal)}
 @media (max-width:900px){.language-switch{margin:.5rem 0 0}}
+
+/* Age activity links: consistent navigation for every age */
+.activity-links{display:flex;flex-wrap:wrap;align-items:center;gap:.8rem 1.25rem;margin-top:.8rem}
+.activity-links .text-link{display:inline-flex;align-items:center;margin:0}
+@media(max-width:600px){.activity-links{flex-direction:column;align-items:flex-start;gap:.55rem}}
