@@ -1,0 +1,64 @@
+/* Havila Learning – Hero Gallery
+   Fica dentro de .hero-card.hero-photo e mantém o tamanho/posição atuais:
+   as 9 imagens ficam empilhadas na mesma célula de uma grelha, por isso o
+   contentor tem exatamente a altura que a fotografia única tinha antes. */
+
+.hero-gallery{position:relative;overflow:hidden;border-radius:inherit}
+.hero-gallery-track{display:grid}
+
+.hero-gallery .hero-slide{
+  grid-area:1/1;
+  display:block;
+  width:100%;
+  object-fit:cover;
+  opacity:0;
+  visibility:hidden;
+  transition:opacity .9s ease,visibility 0s linear .9s;
+}
+.hero-gallery .hero-slide.is-active{
+  opacity:1;
+  visibility:visible;
+  z-index:1;
+  transition:opacity .9s ease,visibility 0s;
+}
+
+/* Setas ‹ › */
+.hg-btn{
+  position:absolute;top:50%;transform:translateY(-50%);z-index:3;
+  width:42px;height:42px;border:0;border-radius:50%;
+  background:rgba(255,255,255,.85);color:#1f2937;
+  font-size:28px;line-height:1;padding:0 0 4px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18);
+  opacity:.9;transition:background .2s ease,opacity .2s ease,transform .2s ease;
+}
+.hg-btn:hover{background:#fff;opacity:1}
+.hg-btn:focus-visible,.hg-dot:focus-visible{outline:3px solid var(--teal,#0d9488);outline-offset:2px}
+.hg-prev{left:12px}
+.hg-next{right:12px}
+
+/* Indicadores ● ○ ○ ○ … */
+.hg-dots{
+  position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:3;
+  display:flex;gap:8px;padding:6px 10px;border-radius:999px;
+  background:rgba(0,0,0,.28);
+}
+.hg-dot{
+  width:10px;height:10px;padding:0;border:0;border-radius:50%;
+  background:rgba(255,255,255,.55);cursor:pointer;
+  transition:background .2s ease,transform .2s ease;
+}
+.hg-dot.is-active{background:#fff;transform:scale(1.2)}
+
+/* Telemóvel */
+@media (max-width:640px){
+  .hg-btn{width:36px;height:36px;font-size:24px}
+  .hg-prev{left:8px}
+  .hg-next{right:8px}
+  .hg-dots{bottom:8px;gap:6px}
+  .hg-dot{width:8px;height:8px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .hero-gallery .hero-slide,.hero-gallery .hero-slide.is-active{transition-duration:.01s}
+}
