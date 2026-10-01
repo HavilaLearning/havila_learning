@@ -19,8 +19,8 @@ if(toggle && menu){
     '/ebooks/':'/pt/ebooks/',
     '/free-resources/':'/pt/free-resources/',
     '/learning-activities/':'/pt/learning-activities/',
-    '/learning-activities/age-3/':'/pt/learning-activities/',
-    '/learning-activities/age-4/':'/pt/learning-activities/',
+    '/learning-activities/age-3/':'/pt/blog/atividades-de-aprendizagem-para-criancas-de-3-anos/',
+    '/learning-activities/age-4/':'/pt/blog/atividades-de-aprendizagem-para-criancas-de-4-anos/',
     '/learning-activities/age-5/':'/pt/learning-activities/',
     '/learning-activities/age-6-plus/':'/pt/learning-activities/'
   };
