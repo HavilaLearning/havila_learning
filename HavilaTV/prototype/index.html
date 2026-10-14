@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Havila TV — Prototype</title>
+  <style>
+    :root { --bg:#07111f; --panel:#102238; --panel2:#152d47; --text:#f5f7fa; --muted:#aebdca; --accent:#e8b84b; }
+    *{box-sizing:border-box} body{margin:0;background:linear-gradient(135deg,#07111f,#0d2035);color:var(--text);font-family:Arial,sans-serif;min-height:100vh}
+    header{height:86px;display:flex;align-items:center;justify-content:space-between;padding:0 55px;border-bottom:1px solid #20384f}
+    .brand{font-size:30px;font-weight:800;letter-spacing:1px}.brand span{color:var(--accent)}
+    .tools{display:flex;gap:25px;color:var(--muted);font-size:25px}.hint{font-size:14px;color:var(--muted);margin-left:55px;margin-top:28px}
+    main{padding:12px 55px 50px}.section-title{font-size:22px;margin:25px 0 14px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;max-width:1100px}
+    .card{height:135px;background:var(--panel);border:2px solid transparent;border-radius:12px;padding:20px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;outline:none}
+    .card:focus,.card:hover{border-color:var(--accent);background:var(--panel2);transform:scale(1.02)}
+    .icon{font-size:38px}.name{font-size:18px;font-weight:700}.sub{font-size:13px;color:var(--muted)}
+    .featured{display:flex;gap:18px;overflow:hidden}.channel{min-width:245px;height:120px;background:var(--panel);border-radius:12px;padding:18px;border:2px solid transparent;outline:none}.channel:focus{border-color:var(--accent)}
+    footer{position:fixed;bottom:0;left:0;right:0;padding:12px 55px;background:#050d17;color:var(--muted);font-size:13px}
+    @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
+  </style>
+</head>
+<body>
+<header><div class="brand">HAVILA <span>TV</span></div><div class="tools">⌕　⚙</div></header>
+<div class="hint">Use ↑ ↓ ← → para navegar • OK para selecionar • Voltar para regressar</div>
+<main>
+  <h2 class="section-title">Ao Vivo</h2>
+  <div class="grid" id="categories"></div>
+  <h2 class="section-title">Canais em destaque</h2>
+  <div class="featured" id="channels"></div>
+</main>
+<footer>Havila TV 1.0 • Plataforma de conteúdos televisivos e streaming</footer>
+<script>
+const categories=[['📰','Notícias','Informação nacional e internacional'],['✝️','Gospel','Fé, música e programas cristãos'],['⚽','Desporto','Notícias e transmissões autorizadas'],['🎬','Filmes','Filmes e documentários autorizados'],['👧','Havila Kids','Conteúdo educativo infantil'],['🎵','Música','Música e entretenimento'],['🇲🇿','Moçambique','Conteúdo produzido em Moçambique'],['👨‍👩‍👧','Família','Programas para toda a família']];
+const channels=[['Havila Gospel','Gospel'],['Havila News','Notícias'],['Havila Sports','Desporto'],['Havila Kids','Havila Kids']];
+const cat=document.getElementById('categories'); const ch=document.getElementById('channels');
+categories.forEach((c,i)=>{const e=document.createElement('div');e.className='card';e.tabIndex=0;e.dataset.index=i;e.innerHTML=`<div class="icon">${c[0]}</div><div class="name">${c[1]}</div><div class="sub">${c[2]}</div>`;cat.appendChild(e)});
+channels.forEach(c=>{const e=document.createElement('div');e.className='channel';e.tabIndex=0;e.innerHTML=`<div class="name">${c[0]}</div><div class="sub">${c[1]} • Em breve</div>`;ch.appendChild(e)});
+const focusables=[...document.querySelectorAll('.card,.channel')]; focusables[0].focus();
+function move(dx,dy){const a=document.activeElement;if(!focusables.includes(a))return;const r=a.getBoundingClientRect(), cx=r.left+r.width/2,cy=r.top+r.height/2;let best=null,score=Infinity;focusables.forEach(b=>{if(b===a)return;const q=b.getBoundingClientRect(),bx=q.left+q.width/2,by=q.top+q.height/2;const x=bx-cx,y=by-cy;if((dx>0&&x<=0)||(dx<0&&x>=0)||(dy>0&&y<=0)||(dy<0&&y>=0))return;const primary=Math.abs(dx?x:y),secondary=Math.abs(dx?y:x);const s=primary*10+secondary;if(s<score){score=s;best=b}});if(best)best.focus()}
+document.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();move(e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0,e.key==='ArrowDown'?1:e.key==='ArrowUp'?-1:0)} if(e.key==='Enter'){e.preventDefault();const a=document.activeElement;if(a?.classList.contains('card'))alert('Categoria selecionada: '+a.querySelector('.name').textContent);else if(a?.classList.contains('channel'))alert('Player será ligado nesta etapa seguinte.')}});
+</script>
+</body>
+</html>
