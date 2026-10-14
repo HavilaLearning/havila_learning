@@ -2,7 +2,7 @@
     <uses-feature android:name="android.software.leanback" android:required="true" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <application android:theme="@style/Theme.HavilaTV" android:label="Havila TV" android:banner="@drawable/banner">
+    <application android:theme="@style/Theme.HavilaTV" android:label="Havila TV" android:icon="@mipmap/ic_launcher" android:banner="@drawable/banner">
         <activity android:name=".PlayerActivity" android:exported="false" />
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
