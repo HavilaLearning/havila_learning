@@ -1,50 +1,48 @@
 package com.havila.tv
 
-import android.net.Uri
+import android.annotation.SuppressLint
 import android.os.Bundle
+import android.webkit.WebChromeClient
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.media3.common.MediaItem
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.PlayerView
 
 class PlayerActivity : ComponentActivity() {
-    private var player: ExoPlayer? = null
+    private var webView: WebView? = null
 
+    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val url = intent.getStringExtra("streamUrl")
         val channel = intent.getStringExtra("channelName") ?: "Havila TV"
 
         if (url.isNullOrBlank()) {
-            setContent {
-                Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
-                    Text("$channel\n\nStream ainda não configurado.", color = Color.White)
-                }
-            }
+            finish()
             return
         }
 
-        player = ExoPlayer.Builder(this).build().apply {
-            setMediaItem(MediaItem.fromUri(Uri.parse(url)))
-            prepare()
-            playWhenReady = true
+        webView = WebView(this).apply {
+            webViewClient = WebViewClient()
+            webChromeClient = WebChromeClient()
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            settings.mediaPlaybackRequiresUserGesture = false
+            settings.cacheMode = WebSettings.LOAD_DEFAULT
+            settings.userAgentString = WebSettings.getDefaultUserAgent(this@PlayerActivity)
+            contentDescription = channel
+            loadUrl(url)
         }
-        val view = PlayerView(this)
-        view.player = player
-        setContentView(view)
+        setContentView(webView)
     }
 
-    override fun onStop() {
-        player?.release()
-        player = null
-        super.onStop()
+    override fun onBackPressed() {
+        if (webView?.canGoBack() == true) webView?.goBack() else super.onBackPressed()
+    }
+
+    override fun onDestroy() {
+        webView?.destroy()
+        webView = null
+        super.onDestroy()
     }
 }
