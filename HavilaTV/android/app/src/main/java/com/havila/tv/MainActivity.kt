@@ -7,8 +7,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -42,7 +43,10 @@ import androidx.compose.ui.unit.sp
 private data class Category(val icon: String, val name: String, val subtitle: String)
 private val gold = Color(0xFFFFC629)
 private val navy = Color(0xFF06101C)
+private val sidebar = Color(0xFF091827)
 private val panel = Color(0xFF102238)
+private val panel2 = Color(0xFF152B42)
+private val muted = Color(0xFFAFC0D0)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,40 +59,30 @@ class MainActivity : ComponentActivity() {
 fun HavilaTvHome() {
     val context = LocalContext.current
     val categories = listOf(
-        Category("📰", "Notícias", "Atualidade e sociedade"),
-        Category("✝", "Gospel", "Fé e esperança"),
-        Category("⚽", "Desporto", "Paixão que une"),
-        Category("🎬", "Filmes", "Grandes histórias"),
-        Category("👧", "Havila Kids", "Aprender e brincar"),
-        Category("🎵", "Música", "Sons que inspiram"),
-        Category("🇲🇿", "Moçambique", "Nossa terra, nossa gente"),
-        Category("👨‍👩‍👧", "Família", "Juntos somos mais fortes")
+        Category("N", "Notícias", "Atualidade e sociedade"),
+        Category("G", "Gospel", "Fé e esperança"),
+        Category("D", "Desporto", "Paixão que une"),
+        Category("F", "Filmes", "Grandes histórias"),
+        Category("K", "Havila Kids", "Aprender e brincar"),
+        Category("M", "Música", "Sons que inspiram"),
+        Category("MZ", "Moçambique", "Nossa terra, nossa gente"),
+        Category("FAM", "Família", "Juntos somos mais fortes")
     )
     var selected by remember { mutableStateOf("Início") }
 
     Row(modifier = Modifier.fillMaxSize().background(navy)) {
         SideMenu(selected = selected, onSelect = { selected = it })
         Column(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 28.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            modifier = Modifier.fillMaxSize().padding(start = 28.dp, end = 30.dp, top = 20.dp, bottom = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(13.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().focusGroup(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("HAVILA TV", color = Color.White, fontSize = 30.sp)
-                Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                    Text("⌕  Pesquisar", color = Color.LightGray, fontSize = 16.sp, modifier = Modifier.focusable())
-                    Text("⚙  Configurações", color = Color.LightGray, fontSize = 16.sp, modifier = Modifier.focusable())
-                }
-            }
+            Header()
             HeroBanner()
-            Text("CANAIS", color = Color.White, fontSize = 22.sp)
+            SectionTitle("CANAIS", "Selecione um canal e pressione OK para assistir")
             LazyRow(
-                modifier = Modifier.focusGroup(),
+                modifier = Modifier.fillMaxWidth().focusGroup(),
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
-                contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp)
+                contentPadding = PaddingValues(horizontal = 3.dp, vertical = 5.dp)
             ) {
                 items(ChannelRepository.channels) { channel ->
                     ChannelCard(channel) {
@@ -99,51 +93,90 @@ fun HavilaTvHome() {
                     }
                 }
             }
-            Text("Para toda a família", color = Color.White, fontSize = 21.sp)
+            SectionTitle("PARA TODA A FAMÍLIA", null)
             LazyRow(
-                modifier = Modifier.focusGroup(),
+                modifier = Modifier.fillMaxWidth().focusGroup(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp)
+                contentPadding = PaddingValues(horizontal = 3.dp, vertical = 5.dp)
             ) {
                 items(categories) { category ->
                     CategoryCard(category, selected == category.name) { selected = category.name }
                 }
             }
-            Text("⭐  Em destaque", color = gold, fontSize = 20.sp)
-            Text("Conteúdos que informam, educam, inspiram e entretêm.", color = Color(0xFFB9C7D5), fontSize = 15.sp)
         }
     }
+}
+
+@Composable
+private fun Header() {
+    Row(
+        modifier = Modifier.fillMaxWidth().height(42.dp).focusGroup(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("HAVILA", color = Color.White, fontSize = 27.sp)
+            Spacer(Modifier.width(7.dp))
+            Text("TV", color = gold, fontSize = 27.sp)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(28.dp), verticalAlignment = Alignment.CenterVertically) {
+            FocusText("⌕  Pesquisar")
+            FocusText("⚙  Configurações")
+        }
+    }
+}
+
+@Composable
+private fun FocusText(text: String) {
+    var focused by remember { mutableStateOf(false) }
+    Text(
+        text,
+        color = if (focused) Color.White else muted,
+        fontSize = 15.sp,
+        modifier = Modifier
+            .background(if (focused) panel2 else Color.Transparent, RoundedCornerShape(7.dp))
+            .border(if (focused) 2.dp else 0.dp, if (focused) gold else Color.Transparent, RoundedCornerShape(7.dp))
+            .padding(horizontal = 10.dp, vertical = 7.dp)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
+    )
 }
 
 @Composable
 private fun SideMenu(selected: String, onSelect: (String) -> Unit) {
     val items = listOf("⌂  Início", "▣  Canais", "▦  Categorias", "♥  Favoritos", "⚙  Configurações")
     Column(
-        modifier = Modifier.width(190.dp).fillMaxHeight().background(Color(0xFF081727)).padding(18.dp).focusGroup(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        modifier = Modifier.width(185.dp).fillMaxHeight().background(sidebar).padding(horizontal = 16.dp, vertical = 20.dp).focusGroup(),
+        verticalArrangement = Arrangement.spacedBy(9.dp)
     ) {
         Text("HAVILA", color = Color.White, fontSize = 25.sp)
         Text("TV", color = gold, fontSize = 25.sp)
-        Text("Entretenimento com Valores", color = Color(0xFFB9C7D5), fontSize = 11.sp)
-        Spacer(Modifier.height(16.dp))
+        Text("ENTRETENIMENTO COM VALORES", color = muted, fontSize = 9.sp)
+        Spacer(Modifier.height(18.dp))
         items.forEach { item ->
             val key = item.substringAfter("  ")
-            val active = selected == key
-            Text(
-                item,
-                color = if (active) Color.Black else Color.White,
-                fontSize = 15.sp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(if (active) gold else Color.Transparent, RoundedCornerShape(8.dp))
-                    .border(1.dp, if (active) gold else Color.Transparent, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 12.dp, vertical = 13.dp)
-                    .onFocusChanged { if (it.isFocused) onSelect(key) }
-                    .clickable { onSelect(key) }
-                    .focusable()
-            )
+            MenuItem(item, selected == key) { onSelect(key) }
         }
     }
+}
+
+@Composable
+private fun MenuItem(text: String, active: Boolean, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val highlighted = active || focused
+    Text(
+        text,
+        color = if (highlighted) Color.Black else Color.White,
+        fontSize = 14.sp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(if (highlighted) gold else Color.Transparent, RoundedCornerShape(9.dp))
+            .border(if (focused) 2.dp else 0.dp, if (focused) Color.White else Color.Transparent, RoundedCornerShape(9.dp))
+            .padding(horizontal = 11.dp, vertical = 12.dp)
+            .onFocusChanged { focused = it.isFocused }
+            .clickable { onClick() }
+            .focusable()
+    )
 }
 
 @Composable
@@ -151,55 +184,74 @@ private fun HeroBanner() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(170.dp)
-            .background(Brush.horizontalGradient(listOf(Color(0xFF14283D), Color(0xFF304B62))), RoundedCornerShape(16.dp))
-            .padding(25.dp)
+            .height(142.dp)
+            .background(
+                Brush.horizontalGradient(listOf(Color(0xFF10263B), Color(0xFF1D4A72), Color(0xFF17324A))),
+                RoundedCornerShape(16.dp)
+            )
+            .border(1.dp, Color(0xFF2C5A7D), RoundedCornerShape(16.dp))
+            .padding(horizontal = 24.dp, vertical = 17.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-            Text("BEM-VINDO À HAVILA TV", color = gold, fontSize = 12.sp)
-            Text("Entretenimento\ncom Valores", color = Color.White, fontSize = 31.sp)
-            Text("Conteúdos que informam, educam, inspiram e unem toda a família.", color = Color(0xFFD5DEE7), fontSize = 14.sp)
-            Text("▶  Assistir Agora", color = Color.Black, fontSize = 14.sp, modifier = Modifier.background(gold, RoundedCornerShape(8.dp)).padding(horizontal = 16.dp, vertical = 9.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text("BEM-VINDO À HAVILA TV", color = gold, fontSize = 11.sp)
+            Text("Entretenimento com Valores", color = Color.White, fontSize = 27.sp)
+            Text("Conteúdos que informam, educam, inspiram e unem toda a família.", color = Color(0xFFD6E0E8), fontSize = 13.sp)
+            Text("OK  •  Selecionar canal", color = Color(0xFFE8EEF3), fontSize = 11.sp)
         }
+    }
+}
+
+@Composable
+private fun SectionTitle(title: String, hint: String?) {
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(title, color = Color.White, fontSize = 20.sp)
+        if (hint != null) Text(hint, color = muted, fontSize = 11.sp)
     }
 }
 
 @Composable
 private fun ChannelCard(channel: Channel, onOpen: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
     Box(
         modifier = Modifier
-            .width(250.dp)
-            .height(105.dp)
-            .background(panel, RoundedCornerShape(12.dp))
-            .border(1.dp, Color(0xFF30485E), RoundedCornerShape(12.dp))
+            .width(270.dp)
+            .height(118.dp)
+            .scale(if (focused) 1.025f else 1f)
+            .background(if (focused) Color(0xFF183653) else panel, RoundedCornerShape(13.dp))
+            .border(if (focused) 3.dp else 1.dp, if (focused) gold else Color(0xFF2C4962), RoundedCornerShape(13.dp))
+            .onFocusChanged { focused = it.isFocused }
             .clickable { onOpen() }
             .focusable()
-            .padding(15.dp)
+            .padding(horizontal = 16.dp, vertical = 13.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("●  ${if (channel.streamUrl != null) "DISPONÍVEL" else "CATÁLOGO"}", color = if (channel.streamUrl != null) Color(0xFF6DDE9A) else Color.Gray, fontSize = 11.sp)
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("●  ${if (channel.streamUrl != null) "DISPONÍVEL" else "CATÁLOGO"}", color = if (channel.streamUrl != null) Color(0xFF6DDE9A) else Color(0xFF899AAA), fontSize = 10.sp)
             Text(channel.name, color = Color.White, fontSize = 20.sp)
-            Text(channel.description, color = Color(0xFFB9C7D5), fontSize = 13.sp, maxLines = 2)
+            Text(channel.description, color = muted, fontSize = 12.sp, maxLines = 2)
         }
-        Text("▶", color = gold, fontSize = 25.sp, modifier = Modifier.align(Alignment.CenterEnd))
+        Text("▶", color = gold, fontSize = 27.sp, modifier = Modifier.align(Alignment.CenterEnd))
     }
 }
 
 @Composable
 private fun CategoryCard(category: Category, active: Boolean, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val highlighted = active || focused
     Column(
         modifier = Modifier
-            .width(150.dp)
-            .height(92.dp)
-            .background(if (active) gold else panel, RoundedCornerShape(10.dp))
-            .border(if (active) 2.dp else 1.dp, if (active) gold else Color(0xFF30485E), RoundedCornerShape(10.dp))
+            .width(148.dp)
+            .height(86.dp)
+            .scale(if (focused) 1.025f else 1f)
+            .background(if (highlighted) gold else panel, RoundedCornerShape(10.dp))
+            .border(if (focused) 3.dp else 1.dp, if (focused) Color.White else if (active) gold else Color(0xFF2C4962), RoundedCornerShape(10.dp))
+            .onFocusChanged { focused = it.isFocused }
             .clickable { onClick() }
             .focusable()
-            .padding(12.dp),
+            .padding(11.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(category.icon, fontSize = 24.sp)
-        Text(category.name, color = if (active) Color.Black else Color.White, fontSize = 15.sp)
-        Text(category.subtitle, color = if (active) Color(0xFF26323D) else Color(0xFF9FB0BF), fontSize = 9.sp, maxLines = 1)
+        Text(category.icon, color = if (highlighted) Color.Black else gold, fontSize = 12.sp)
+        Text(category.name, color = if (highlighted) Color.Black else Color.White, fontSize = 14.sp)
+        Text(category.subtitle, color = if (highlighted) Color(0xFF26323D) else muted, fontSize = 9.sp, maxLines = 1)
     }
 }
