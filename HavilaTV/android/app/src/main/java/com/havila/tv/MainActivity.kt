@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -47,17 +48,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent { HavilaTvHome() }
     }
-
-    private fun openPlayer(channel: Channel) {
-        startActivity(Intent(this, PlayerActivity::class.java).apply {
-            putExtra("streamUrl", channel.streamUrl)
-            putExtra("channelName", channel.name)
-        })
-    }
 }
 
 @Composable
 fun HavilaTvHome() {
+    val context = LocalContext.current
     val categories = listOf(
         Category("📰", "Notícias", "Atualidade e sociedade"),
         Category("✝", "Gospel", "Fé e esperança"),
@@ -73,11 +68,7 @@ fun HavilaTvHome() {
 
     Row(modifier = Modifier.fillMaxSize().background(navy)) {
         SideMenu(selected = selected, onSelect = { selected = it })
-
-        Column(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 30.dp, vertical = 22.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        Column(modifier = Modifier.fillMaxSize().padding(horizontal = 30.dp, vertical = 22.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("HAVILA TV", color = Color.White, fontSize = 30.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -85,23 +76,22 @@ fun HavilaTvHome() {
                     Text("⚙  Configurações", color = Color.LightGray, fontSize = 16.sp)
                 }
             }
-
             HeroBanner()
-
             Text("AO VIVO", color = Color.White, fontSize = 22.sp)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp), contentPadding = PaddingValues(2.dp)) {
                 items(channels) { channel ->
-                    ChannelCard(channel) { selectedChannel ->
-                        (this@HavilaTvHome)
+                    ChannelCard(channel) {
+                        context.startActivity(Intent(context, PlayerActivity::class.java).apply {
+                            putExtra("streamUrl", channel.streamUrl)
+                            putExtra("channelName", channel.name)
+                        })
                     }
                 }
             }
-
             Text("Para toda a família", color = Color.White, fontSize = 21.sp)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(2.dp)) {
                 items(categories) { category -> CategoryCard(category, selected == category.name) { selected = category.name } }
             }
-
             Text("⭐  Em destaque", color = gold, fontSize = 20.sp)
             Text("Conteúdos que informam, educam, inspiram e entretêm.", color = Color(0xFFB9C7D5), fontSize = 15.sp)
         }
@@ -138,8 +128,8 @@ private fun HeroBanner() {
 }
 
 @Composable
-private fun ChannelCard(channel: Channel, onOpen: (Channel) -> Unit) {
-    Box(modifier = Modifier.width(250.dp).height(105.dp).background(panel, RoundedCornerShape(12.dp)).border(1.dp, Color(0xFF30485E), RoundedCornerShape(12.dp)).padding(15.dp).onFocusChanged { if (it.isFocused) onOpen(channel) }.focusable()) {
+private fun ChannelCard(channel: Channel, onOpen: () -> Unit) {
+    Box(modifier = Modifier.width(250.dp).height(105.dp).background(panel, RoundedCornerShape(12.dp)).border(1.dp, Color(0xFF30485E), RoundedCornerShape(12.dp)).padding(15.dp).onFocusChanged { }.focusable()) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("●  ${if (channel.isLive) "AO VIVO" else "OFFLINE"}", color = if (channel.isLive) Color(0xFFFF5B5B) else Color.Gray, fontSize = 11.sp)
             Text(channel.name, color = Color.White, fontSize = 20.sp)
