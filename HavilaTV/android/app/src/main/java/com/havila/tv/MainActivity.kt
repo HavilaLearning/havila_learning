@@ -38,7 +38,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private data class Category(val icon: String, val name: String, val subtitle: String)
-
 private val gold = Color(0xFFFFC629)
 private val navy = Color(0xFF06101C)
 private val panel = Color(0xFF102238)
@@ -63,7 +62,6 @@ fun HavilaTvHome() {
         Category("🇲🇿", "Moçambique", "Nossa terra, nossa gente"),
         Category("👨‍👩‍👧", "Família", "Juntos somos mais fortes")
     )
-    val channels = ChannelRepository.channels
     var selected by remember { mutableStateOf("Início") }
 
     Row(modifier = Modifier.fillMaxSize().background(navy)) {
@@ -77,9 +75,9 @@ fun HavilaTvHome() {
                 }
             }
             HeroBanner()
-            Text("AO VIVO", color = Color.White, fontSize = 22.sp)
+            Text("CANAIS", color = Color.White, fontSize = 22.sp)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp), contentPadding = PaddingValues(2.dp)) {
-                items(channels) { channel ->
+                items(ChannelRepository.channels) { channel ->
                     ChannelCard(channel) {
                         context.startActivity(Intent(context, PlayerActivity::class.java).apply {
                             putExtra("streamUrl", channel.streamUrl)
@@ -129,9 +127,9 @@ private fun HeroBanner() {
 
 @Composable
 private fun ChannelCard(channel: Channel, onOpen: () -> Unit) {
-    Box(modifier = Modifier.width(250.dp).height(105.dp).background(panel, RoundedCornerShape(12.dp)).border(1.dp, Color(0xFF30485E), RoundedCornerShape(12.dp)).padding(15.dp).onFocusChanged { }.focusable()) {
+    Box(modifier = Modifier.width(250.dp).height(105.dp).background(panel, RoundedCornerShape(12.dp)).border(1.dp, Color(0xFF30485E), RoundedCornerShape(12.dp)).padding(15.dp).onFocusChanged { if (it.isFocused) onOpen() }.focusable()) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("●  ${if (channel.isLive) "AO VIVO" else "OFFLINE"}", color = if (channel.isLive) Color(0xFFFF5B5B) else Color.Gray, fontSize = 11.sp)
+            Text("●  ${if (channel.streamUrl != null) "DISPONÍVEL" else "CATÁLOGO"}", color = if (channel.streamUrl != null) Color(0xFF6DDE9A) else Color.Gray, fontSize = 11.sp)
             Text(channel.name, color = Color.White, fontSize = 20.sp)
             Text(channel.description, color = Color(0xFFB9C7D5), fontSize = 13.sp)
         }
