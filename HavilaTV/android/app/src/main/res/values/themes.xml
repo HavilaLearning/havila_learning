@@ -1,0 +1,1 @@
+<resources><style name="Theme.HavilaTV" parent="android:style/Theme.Material.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:windowFullscreen">true</item><item name="android:colorAccent">#FFC629</item><item name="android:navigationBarColor">#06101C</item><item name="android:statusBarColor">#06101C</item></style></resources>
