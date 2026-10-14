@@ -1,5 +1,6 @@
 package com.havila.tv
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -36,7 +37,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private data class Category(val icon: String, val name: String, val subtitle: String)
-private data class Channel(val name: String, val category: String, val status: String)
 
 private val gold = Color(0xFFFFC629)
 private val navy = Color(0xFF06101C)
@@ -46,6 +46,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent { HavilaTvHome() }
+    }
+
+    private fun openPlayer(channel: Channel) {
+        startActivity(Intent(this, PlayerActivity::class.java).apply {
+            putExtra("streamUrl", channel.streamUrl)
+            putExtra("channelName", channel.name)
+        })
     }
 }
 
@@ -61,11 +68,7 @@ fun HavilaTvHome() {
         Category("🇲🇿", "Moçambique", "Nossa terra, nossa gente"),
         Category("👨‍👩‍👧", "Família", "Juntos somos mais fortes")
     )
-    val channels = listOf(
-        Channel("Notícias", "Notícias", "AO VIVO"),
-        Channel("Gospel", "Gospel", "AO VIVO"),
-        Channel("Desporto", "Desporto", "AO VIVO")
-    )
+    val channels = ChannelRepository.channels
     var selected by remember { mutableStateOf("Início") }
 
     Row(modifier = Modifier.fillMaxSize().background(navy)) {
@@ -87,7 +90,11 @@ fun HavilaTvHome() {
 
             Text("AO VIVO", color = Color.White, fontSize = 22.sp)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp), contentPadding = PaddingValues(2.dp)) {
-                items(channels) { channel -> ChannelCard(channel) }
+                items(channels) { channel ->
+                    ChannelCard(channel) { selectedChannel ->
+                        (this@HavilaTvHome)
+                    }
+                }
             }
 
             Text("Para toda a família", color = Color.White, fontSize = 21.sp)
@@ -111,7 +118,7 @@ private fun SideMenu(selected: String, onSelect: (String) -> Unit) {
         Spacer(Modifier.height(16.dp))
         items.forEach { item ->
             val key = item.substringAfter("  ")
-            val active = selected == key || (key == "Início" && selected == "Início")
+            val active = selected == key
             Text(item, color = if (active) Color.Black else Color.White, fontSize = 15.sp,
                 modifier = Modifier.fillMaxWidth().background(if (active) gold else Color.Transparent, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 13.dp).onFocusChanged { if (it.isFocused) onSelect(key) }.focusable())
         }
@@ -131,12 +138,12 @@ private fun HeroBanner() {
 }
 
 @Composable
-private fun ChannelCard(channel: Channel) {
-    Box(modifier = Modifier.width(250.dp).height(105.dp).background(panel, RoundedCornerShape(12.dp)).border(1.dp, Color(0xFF30485E), RoundedCornerShape(12.dp)).padding(15.dp)) {
+private fun ChannelCard(channel: Channel, onOpen: (Channel) -> Unit) {
+    Box(modifier = Modifier.width(250.dp).height(105.dp).background(panel, RoundedCornerShape(12.dp)).border(1.dp, Color(0xFF30485E), RoundedCornerShape(12.dp)).padding(15.dp).onFocusChanged { if (it.isFocused) onOpen(channel) }.focusable()) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("●  ${channel.status}", color = Color(0xFFFF5B5B), fontSize = 11.sp)
+            Text("●  ${if (channel.isLive) "AO VIVO" else "OFFLINE"}", color = if (channel.isLive) Color(0xFFFF5B5B) else Color.Gray, fontSize = 11.sp)
             Text(channel.name, color = Color.White, fontSize = 20.sp)
-            Text(channel.category, color = Color(0xFFB9C7D5), fontSize = 13.sp)
+            Text(channel.description, color = Color(0xFFB9C7D5), fontSize = 13.sp)
         }
         Text("▶", color = gold, fontSize = 25.sp, modifier = Modifier.align(Alignment.CenterEnd))
     }
