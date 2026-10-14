@@ -1,31 +1,34 @@
-# Havila TV
+# Havila TV 1.0
 
-Havila TV is the planned Smart TV streaming platform for Havila.
+Primeira etapa: protótipo da aplicação de TV para Android TV / Google TV.
 
-## MVP 1.0
+## Objetivo
 
-Initial target: Android TV / Google TV.
+Criar uma interface de Smart TV para organizar conteúdos autorizados nas categorias:
 
-### Initial sections
-- Ao Vivo
 - Notícias
 - Gospel
 - Desporto
 - Filmes
-- Havila Kids
+- Kids
 - Música
 - Moçambique
-- Favoritos
+- Família
 
-### Development principle
-The MVP will use only content that Havila owns or is authorized to distribute. No third-party channel or sports stream should be added without appropriate distribution rights.
+## Princípios
+
+- O aplicativo deve funcionar bem com comando remoto.
+- O catálogo deve poder crescer sem reconstruir a interface.
+- Apenas conteúdos próprios ou devidamente autorizados devem ser distribuídos.
+- A primeira versão deve permitir testes com streams de demonstração/autorizados.
 
 ## Roadmap
-1. Android TV prototype
-2. Channel catalog and player
-3. Remote-control navigation
-4. Backend/API
-5. Admin panel
-6. Authorized content partnerships
-7. Premium subscriptions and advertising
-8. Samsung Tizen and LG webOS versions
+
+1. Interface Home e navegação por comando remoto.
+2. Player de vídeo HLS.
+3. Catálogo de canais e categorias.
+4. Favoritos e pesquisa.
+5. Backend/API.
+6. Painel administrativo.
+7. Testes em Android TV/Google TV.
+8. Adaptação para Samsung Tizen e LG webOS.
