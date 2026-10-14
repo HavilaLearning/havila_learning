@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "channels": [
+    {
+      "id": "havila-news-demo",
+      "name": "Havila News — Demo",
+      "category": "Notícias",
+      "country": "MZ",
+      "streamUrl": "",
+      "status": "demo",
+      "rights": "replace-with-authorized-stream"
+    },
+    {
+      "id": "havila-gospel-demo",
+      "name": "Havila Gospel — Demo",
+      "category": "Gospel",
+      "country": "MZ",
+      "streamUrl": "",
+      "status": "demo",
+      "rights": "replace-with-authorized-stream"
+    },
+    {
+      "id": "havila-sport-demo",
+      "name": "Havila Sport — Demo",
+      "category": "Desporto",
+      "country": "MZ",
+      "streamUrl": "",
+      "status": "demo",
+      "rights": "replace-with-authorized-stream"
+    }
+  ]
+}
