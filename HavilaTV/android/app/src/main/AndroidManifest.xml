@@ -3,8 +3,8 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-permission android:name="android.permission.INTERNET" />
     <application android:theme="@style/Theme.HavilaTV" android:label="Havila TV" android:icon="@drawable/havila_tv_icon" android:banner="@drawable/banner">
-        <activity android:name=".PlayerActivity" android:exported="false" />
-        <activity android:name=".MainActivity" android:exported="true">
+        <activity android:name=".PlayerActivity" android:exported="false" android:screenOrientation="landscape" android:resizeableActivity="false" />
+        <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="landscape" android:resizeableActivity="false">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
