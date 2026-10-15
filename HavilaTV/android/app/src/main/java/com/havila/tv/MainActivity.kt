@@ -98,12 +98,12 @@ private val categories = listOf(
 )
 
 private val featured = listOf(
-    FeaturedUi("tvc", "TVC", "Notícias e Actualidade"),
-    FeaturedUi("stv", "STV", "Entretenimento"),
+    FeaturedUi("tvc", "TVC", "Notícias e Actualidade", "TVC"),
+    FeaturedUi("stv", "STV", "Entretenimento", "STV"),
     FeaturedUi("miramar", "Miramar TV", "Informação e Cultura", "Miramar"),
     FeaturedUi("tvm", "TVM", "Moçambique em Primeiro", "TVM"),
-    FeaturedUi("gospel", "Gospel Channel", "Fé e Esperança"),
-    FeaturedUi("supersport", "SuperSport", "Desporto ao Vivo")
+    FeaturedUi("gospel", "Gospel Channel", "Fé e Esperança", "Gospel Channel"),
+    FeaturedUi("supersport", "SuperSport", "Desporto ao Vivo", "SuperSport")
 )
 
 class MainActivity : ComponentActivity() {
@@ -281,7 +281,7 @@ private fun FeaturedChannels(requester: FocusRequester, context: android.content
         Spacer(Modifier.height(8.dp))
         LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(18.dp), contentPadding = PaddingValues(end = 32.dp)) {
             itemsIndexed(featured) { index, item ->
-                val repositoryChannel = item.repositoryName?.let { name -> ChannelRepository.channels.firstOrNull { it.name == name } }
+                val repositoryChannel = item.repositoryName?.let { name -> ChannelRepository.channels.firstOrNull { it.name.equals(name, ignoreCase = true) } }
                 FeaturedChannelCard(
                     item = item,
                     logoUrl = repositoryChannel?.logoUrl,
@@ -309,64 +309,23 @@ private fun isDirectMediaUrl(url: String): Boolean {
 }
 
 @Composable
-private fun FeaturedChannelCard(
-    item: FeaturedUi,
-    logoUrl: String?,
-    isPlayable: Boolean,
-    requester: FocusRequester?,
-    onOpen: () -> Unit
-) {
+private fun FeaturedChannelCard(item: FeaturedUi, logoUrl: String?, isPlayable: Boolean, requester: FocusRequester?, onOpen: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     Column(
         (if (requester != null) Modifier.focusRequester(requester) else Modifier)
-            .width(265.dp)
-            .height(165.dp)
-            .scale(if (focused) 1.05f else 1f)
-            .onFocusChanged { focused = it.isFocused }
-            .focusable()
+            .width(265.dp).height(165.dp).scale(if (focused) 1.05f else 1f)
+            .onFocusChanged { focused = it.isFocused }.focusable()
             .clickable(enabled = isPlayable) { onOpen() }
+            .focusProperties { up = requester ?: FocusRequester.Default }
     ) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(105.dp)
-                .shadow(if (focused) 18.dp else 0.dp, RoundedCornerShape(10.dp))
-                .clip(RoundedCornerShape(10.dp))
-                .background(Brush.linearGradient(listOf(Color(0xFF334155), Color(0xFF101722))))
-                .border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(10.dp))
-        ) {
+        Box(Modifier.fillMaxWidth().height(105.dp).shadow(if (focused) 18.dp else 0.dp, RoundedCornerShape(10.dp)).clip(RoundedCornerShape(10.dp)).background(Brush.linearGradient(listOf(Color(0xFF334155), Color(0xFF101722)))).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(10.dp))) {
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .55f)))))
-
             if (!logoUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = logoUrl,
-                    contentDescription = item.name,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .width(74.dp)
-                        .height(74.dp)
-                )
+                AsyncImage(model = logoUrl, contentDescription = item.name, modifier = Modifier.align(Alignment.Center).width(74.dp).height(74.dp))
             } else {
-                Text(
-                    item.name,
-                    color = White,
-                    fontSize = 25.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    modifier = Modifier.align(Alignment.Center)
-                )
+                Text(item.name, color = White, fontSize = 25.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.align(Alignment.Center))
             }
-
-            Text(
-                if (isPlayable) "AO VIVO" else "DISPONIBILIDADE",
-                color = White,
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(horizontal = 9.dp, vertical = 5.dp)
-                    .background(if (isPlayable) LiveRed else Color(0xFF566170), RoundedCornerShape(7.dp))
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
-            )
+            Text(if (isPlayable) "AO VIVO" else "DISPONIBILIDADE", color = White, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.TopEnd).padding(horizontal = 9.dp, vertical = 5.dp).background(if (isPlayable) LiveRed else Color(0xFF566170), RoundedCornerShape(7.dp)).padding(horizontal = 6.dp, vertical = 2.dp))
         }
         Text(item.name, color = White, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 6.dp))
         Text(item.subtitle, color = Muted, fontSize = 13.sp, maxLines = 1)
