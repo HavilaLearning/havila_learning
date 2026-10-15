@@ -2,11 +2,12 @@ package com.havila.tv
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.activity.BackHandler
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,13 +27,12 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.itemsIndexed as gridItemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tv
@@ -53,20 +53,18 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.tv.material3.ExperimentalTvMaterial3Api
-import androidx.tv.material3.Surface
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 private val Bg = Color(0xFF070B14)
-private val SurfaceDark = Color(0xFF0F1624)
 private val White = Color(0xFFFFFFFF)
 private val Muted = Color(0xFFA8B0BF)
 private val GoldStart = Color(0xFFF2C14E)
@@ -105,7 +103,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 private fun HavilaTvHome() {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -117,6 +114,7 @@ private fun HavilaTvHome() {
     val channelRequester = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
+        categoryRequester.requestFocus()
         while (true) {
             clock = currentTime()
             kotlinx.coroutines.delay(30_000)
@@ -126,18 +124,13 @@ private fun HavilaTvHome() {
     BackHandler {
         if (selectedMenu == 0) showExitDialog = true else {
             selectedMenu = 0
-            menuRequester.requestFocus()
+            categoryRequester.requestFocus()
         }
     }
 
     Box(Modifier.fillMaxSize().background(Bg)) {
         Row(Modifier.fillMaxSize()) {
-            SideBar(
-                selected = selectedMenu,
-                requester = menuRequester,
-                onSelected = { selectedMenu = it },
-                onExit = { showExitDialog = true }
-            )
+            SideBar(selectedMenu, menuRequester, { selectedMenu = it }, { showExitDialog = true })
             Column(Modifier.fillMaxSize().padding(end = 28.dp)) {
                 TopActions(clock)
                 Hero()
@@ -152,7 +145,12 @@ private fun HavilaTvHome() {
             onDismissRequest = { showExitDialog = false },
             title = { Text("Sair da Havila TV", fontWeight = FontWeight.Bold) },
             text = { Text("Deseja realmente sair da aplicação?") },
-            confirmButton = { TextButton(onClick = { context as? ComponentActivity?.finish() }) { Text("Sair") } },
+            confirmButton = {
+                TextButton(onClick = {
+                    showExitDialog = false
+                    if (context is ComponentActivity) context.finish()
+                }) { Text("Sair") }
+            },
             dismissButton = { TextButton(onClick = { showExitDialog = false }) { Text("Cancelar") } }
         )
     }
@@ -169,10 +167,7 @@ private fun SideBar(selected: Int, requester: FocusRequester, onSelected: (Int) 
         Icons.Default.FavoriteBorder to "Favoritos",
         Icons.Default.Settings to "Configurações"
     )
-    Column(
-        Modifier.width(290.dp).fillMaxHeight().background(Color(0xFF050B14)).border(1.dp, Color(0xFF1E2A39)),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    Column(Modifier.width(290.dp).fillMaxHeight().background(Color(0xFF050B14)).border(1.dp, Color(0xFF1E2A39)), horizontalAlignment = Alignment.CenterHorizontally) {
         Logo()
         Spacer(Modifier.height(28.dp))
         items.forEachIndexed { index, item ->
@@ -184,16 +179,15 @@ private fun SideBar(selected: Int, requester: FocusRequester, onSelected: (Int) 
 @Composable
 private fun MenuItem(index: Int, icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, active: Boolean, requester: FocusRequester, onSelected: (Int) -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val menuFocus = if (index == 0) Modifier.focusRequesterSafe(requester) else Modifier
     Row(
-        menuFocus.fillMaxWidth().height(72.dp).padding(horizontal = 10.dp, vertical = 4.dp)
+        Modifier.then(if (index == 0) Modifier.focusRequester(requester) else Modifier)
+            .fillMaxWidth().height(72.dp).padding(horizontal = 10.dp, vertical = 4.dp)
             .clip(RoundedCornerShape(0.dp, 18.dp, 18.dp, 0.dp))
             .background(if (active) Brush.horizontalGradient(listOf(GoldStart, GoldEnd)) else Brush.linearGradient(listOf(Color.Transparent, Color.Transparent)))
             .onFocusChanged { focused = it.isFocused }
             .border(if (focused) 2.dp else 0.dp, if (focused) FocusGold else Color.Transparent, RoundedCornerShape(18.dp))
             .focusable()
-            .focusProperties { right = FocusRequester.Cancel }
-            .then(Modifier),
+            .clickable { onSelected(index) },
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, label, tint = if (active) Color(0xFF10151C) else White.copy(alpha = .82f), modifier = Modifier.padding(start = 28.dp).width(30.dp))
@@ -201,15 +195,11 @@ private fun MenuItem(index: Int, icon: androidx.compose.ui.graphics.vector.Image
     }
 }
 
-private fun Modifier.focusRequesterSafe(requester: FocusRequester): Modifier = this.then(Modifier.focusRequester(requester))
-
 @Composable
 private fun Logo() {
     Column(Modifier.fillMaxWidth().padding(top = 22.dp, horizontal = 18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.width(48.dp).height(38.dp).border(4.dp, GoldStart, RoundedCornerShape(10.dp))) {
-                Box(Modifier.width(5.dp).height(5.dp).background(GoldStart).align(Alignment.TopCenter).offset(y = (-9).dp))
-            }
+            Box(Modifier.width(48.dp).height(38.dp).border(4.dp, GoldStart, RoundedCornerShape(10.dp)))
             Text("HAVILA", color = White, fontSize = 38.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 7.dp))
             Text("TV", color = GoldStart, fontSize = 35.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 5.dp))
         }
@@ -247,14 +237,8 @@ private fun CategorySection(categoryRequester: FocusRequester, channelRequester:
     Column(Modifier.padding(start = 30.dp, top = 14.dp)) {
         Text("CATEGORIAS", color = White, fontSize = 21.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
         Spacer(Modifier.height(10.dp))
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(4),
-            modifier = Modifier.fillMaxWidth().height(348.dp).focusGroup(),
-            horizontalArrangement = Arrangement.spacedBy(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-            contentPadding = PaddingValues(end = 24.dp, bottom = 8.dp)
-        ) {
-            itemsIndexed(categories) { index, category ->
+        LazyVerticalGrid(columns = GridCells.Fixed(4), modifier = Modifier.fillMaxWidth().height(348.dp).focusGroup(), horizontalArrangement = Arrangement.spacedBy(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp), contentPadding = PaddingValues(end = 24.dp, bottom = 8.dp)) {
+            gridItemsIndexed(categories) { index, category ->
                 CategoryCard(category, if (index == 0) categoryRequester else null, channelRequester)
             }
         }
@@ -264,19 +248,15 @@ private fun CategorySection(categoryRequester: FocusRequester, channelRequester:
 @Composable
 private fun CategoryCard(category: CategoryUi, requester: FocusRequester?, channelRequester: FocusRequester) {
     var focused by remember { mutableStateOf(false) }
-    val base = Modifier.width(360.dp).height(160.dp)
     Box(
-        (if (requester != null) base.focusRequesterSafe(requester) else base)
-            .scale(if (focused) 1.05f else 1f)
-            .shadow(if (focused) 18.dp else 0.dp, RoundedCornerShape(12.dp))
-            .clip(RoundedCornerShape(12.dp))
-            .background(category.art)
+        (if (requester != null) Modifier.focusRequester(requester) else Modifier)
+            .width(360.dp).height(160.dp).scale(if (focused) 1.05f else 1f).shadow(if (focused) 18.dp else 0.dp, RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(12.dp)).background(category.art)
             .border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(12.dp))
-            .onFocusChanged { focused = it.isFocused }
-            .focusable()
+            .onFocusChanged { focused = it.isFocused }.focusable().clickable { }
             .focusProperties { down = channelRequester }
     ) {
-        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .75f)))))
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .78f)))))
         Row(Modifier.align(Alignment.BottomStart).padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
             category.icon()
             Text(category.name, color = White, fontSize = 21.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 14.dp))
@@ -292,7 +272,7 @@ private fun FeaturedChannels(requester: FocusRequester, context: android.content
         LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(18.dp), contentPadding = PaddingValues(end = 32.dp)) {
             itemsIndexed(featured) { index, item ->
                 val repositoryChannel = item.repositoryName?.let { name -> ChannelRepository.channels.firstOrNull { it.name == name } }
-                FeaturedChannelCard(item, repositoryChannel, if (index == 0) requester else null) {
+                FeaturedChannelCard(item, if (index == 0) requester else null) {
                     repositoryChannel?.streamUrl?.let { url ->
                         context.startActivity(Intent(context, PlayerActivity::class.java).apply {
                             putExtra("streamUrl", url)
@@ -307,10 +287,9 @@ private fun FeaturedChannels(requester: FocusRequester, context: android.content
 }
 
 @Composable
-private fun FeaturedChannelCard(item: FeaturedUi, channel: Channel?, requester: FocusRequester?, onOpen: () -> Unit) {
+private fun FeaturedChannelCard(item: FeaturedUi, requester: FocusRequester?, onOpen: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val base = Modifier.width(265.dp).height(165.dp)
-    Column((if (requester != null) base.focusRequesterSafe(requester) else base).scale(if (focused) 1.05f else 1f).onFocusChanged { focused = it.isFocused }.focusable()) {
+    Column((if (requester != null) Modifier.focusRequester(requester) else Modifier).width(265.dp).height(165.dp).scale(if (focused) 1.05f else 1f).onFocusChanged { focused = it.isFocused }.focusable().clickable { onOpen() }) {
         Box(Modifier.fillMaxWidth().height(105.dp).shadow(if (focused) 18.dp else 0.dp, RoundedCornerShape(10.dp)).clip(RoundedCornerShape(10.dp)).background(Brush.linearGradient(listOf(Color(0xFFE8EBEF), Color(0xFF9DA5AD)))).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(10.dp))) {
             Text(item.name, color = Color(0xFF111318), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.align(Alignment.Center))
             Box(Modifier.align(Alignment.TopEnd).background(LiveRed, RoundedCornerShape(bottomStart = 8.dp))) {
