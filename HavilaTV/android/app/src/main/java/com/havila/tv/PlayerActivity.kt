@@ -31,11 +31,15 @@ class PlayerActivity : ComponentActivity() {
 
         val initialUrl = intent.getStringExtra("streamUrl")
         val initialName = intent.getStringExtra("channelName") ?: "Canal"
-        channelIndex = intent.getIntExtra("channelIndex", -1)
+        val channelId = intent.getStringExtra("channelId")
         liveChannels = ChannelRepository.channels.filter { it.isLive && !it.streamUrl.isNullOrBlank() }
 
+        // Resolve the selected channel by its repository ID rather than by the
+        // position of the dashboard card. This keeps D-pad channel switching correct.
+        channelIndex = channelId?.let { id -> liveChannels.indexOfFirst { it.id == id } } ?: -1
+
         if (initialUrl.isNullOrBlank()) {
-            finish()
+            showUnavailable(initialName)
             return
         }
 
