@@ -5,9 +5,13 @@ object ChannelRepository {
     private fun logo(domain: String) = "https://www.google.com/s2/favicons?sz=128&domain=$domain"
 
     val channels = listOf(
+        Channel("tvc", "TVC", "Notícias", "Notícias e Actualidade", null, false, logo("tvc.co.mz")),
+        Channel("stv", "STV", "Entretenimento", "Entretenimento", null, false, logo("stv.co.mz")),
         Channel("mbc-mozambique", "MBC Moçambique", "Moçambique", "Notícias, informação e atualidade", "https://mbc.co.mz/tv-ao-vivo/", true, logo("mbc.co.mz")),
         Channel("tvm", "TVM", "Moçambique", "Televisão pública moçambicana", "https://stream.tvm.co.mz/hls/tvm/playlist.m3u8", true, logo("tvm.co.mz")),
         Channel("miramar", "Miramar", "Moçambique", "Informação, entretenimento e programação familiar", "https://miramar.co.mz/onde-assistir", true, logo("miramar.co.mz")),
+        Channel("gospel-channel", "Gospel Channel", "Gospel", "Fé e Esperança", null, false, logo("gospelchannel.tv")),
+        Channel("supersport", "SuperSport", "Desporto", "Desporto ao Vivo", null, false, logo("supersport.com")),
         Channel("emmanuel-tv", "Emmanuel TV", "Gospel", "Programação cristã e transmissão ao vivo", "https://emmanuel.tv/", true, logo("emmanuel.tv")),
         Channel("worldlove-tv", "WorldLoveTV", "Gospel", "Programação cristã internacional", null, false, logo("loveworldsat.org")),
         Channel("christ-tv", "Christ TV", "Gospel", "Canal cristão e programação de fé", null, false, logo("christianworldmedia.com")),
