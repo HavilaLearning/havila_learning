@@ -5,6 +5,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -67,10 +69,12 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -87,6 +91,7 @@ private val CardBorder = Color(0xFF273447)
 
 private data class CategoryUi(val name: String, val icon: ImageVector, val art: Brush)
 private data class FeaturedUi(val id: String, val name: String, val subtitle: String, val repositoryName: String? = null)
+private data class HeroSlide(val title: String, val imageUrl: String)
 
 private val categories = listOf(
     CategoryUi("Notícias", Icons.Default.Public, Brush.linearGradient(listOf(Color(0xFF0D5AA7), Color(0xFF07182E)))),
@@ -116,6 +121,19 @@ private val featured = listOf(
     FeaturedUi("france24", "France 24", "Notícias internacionais", "France 24"),
     FeaturedUi("euronews", "Euronews", "Notícias da Europa e do mundo", "Euronews"),
     FeaturedUi("rtp-africa", "RTP África", "Informação e conteúdos de Portugal e África", "RTP África")
+)
+
+// Fotografias públicas do Wikimedia Commons. O carregamento é feito em rede para manter o APK leve.
+// A ordem foi definida para começar por uma ponte e percorrer património, história e paisagens de Moçambique.
+private val heroSlides = listOf(
+    HeroSlide("Ponte Maputo–Catembe", "https://commons.wikimedia.org/wiki/Special:Redirect/file/Maputo-Katembe_Bridge_%2834275941386%29.jpg?width=1600"),
+    HeroSlide("Fortaleza de São Sebastião", "https://commons.wikimedia.org/wiki/Special:Redirect/file/Fortaleza_de_S%C3%A3o_Sebasti%C3%A3o-01.jpg?width=1600"),
+    HeroSlide("Ilha de Moçambique", "https://commons.wikimedia.org/wiki/Special:Redirect/file/Ilha_de_Mocambique.jpg?width=1600"),
+    HeroSlide("Estátua de Samora Machel", "https://commons.wikimedia.org/wiki/Special:Redirect/file/Statue_of_Samora_Machel.jpg?width=1600"),
+    HeroSlide("Estação dos CFM – Maputo", "https://commons.wikimedia.org/wiki/Special:Redirect/file/Maputo_CFC_Station.jpg?width=1600"),
+    HeroSlide("Praça da Independência – Maputo", "https://commons.wikimedia.org/wiki/Special:Redirect/file/Pra%C3%A7a_da_Independ%C3%AAncia%2C_Maputo_2025.jpg?width=1600"),
+    HeroSlide("Arquipélago de Bazaruto", "https://commons.wikimedia.org/wiki/Special:Redirect/file/Bazaruto_Archipelago_National_Park%2C_Mozambique.jpg?width=1600"),
+    HeroSlide("Ponte da Ilha de Moçambique", "https://commons.wikimedia.org/wiki/Special:Redirect/file/Mozambique_Island_Bridge.jpg?width=1600")
 )
 
 class MainActivity : ComponentActivity() {
@@ -245,14 +263,67 @@ private fun TopActions(time: String) {
 
 @Composable
 private fun Hero() {
+    var currentIndex by remember { mutableStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(4_000)
+            currentIndex = (currentIndex + 1) % heroSlides.size
+        }
+    }
+
+    val slide = heroSlides[currentIndex]
+
     Box(Modifier.fillMaxWidth().height(285.dp).clip(RoundedCornerShape(0.dp, 0.dp, 18.dp, 18.dp))) {
-        Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(Color(0xFF071426), Color(0xFF713E27), Color(0xFFE8A53B)))))
-        Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Bg.copy(alpha = .98f), Bg.copy(alpha = .74f), Color.Transparent))))
-        Box(Modifier.width(70.dp).height(70.dp).background(Color(0xFFFFD36B), RoundedCornerShape(50.dp)).align(Alignment.TopEnd).offset(x = (-115).dp, y = 78.dp))
+        Crossfade(targetState = slide, animationSpec = tween(durationMillis = 900), label = "hero-background") { activeSlide ->
+            AsyncImage(
+                model = activeSlide.imageUrl,
+                contentDescription = activeSlide.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+
+        // Gradiente escuro à esquerda para preservar a identidade Havila e a leitura do texto.
+        Box(
+            Modifier.fillMaxSize().background(
+                Brush.horizontalGradient(
+                    listOf(Bg.copy(alpha = .98f), Bg.copy(alpha = .78f), Bg.copy(alpha = .32f), Color.Transparent)
+                )
+            )
+        )
+        Box(
+            Modifier.fillMaxSize().background(
+                Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent, Bg.copy(alpha = .45f)))
+            )
+        )
+
         Column(Modifier.padding(start = 42.dp, top = 34.dp)) {
             Text("Bem-vindo à Havila TV", color = White, fontSize = 52.sp, fontWeight = FontWeight.ExtraBold)
             Text("Televisão digital para toda a família", color = Muted, fontSize = 28.sp, modifier = Modifier.padding(top = 2.dp))
             Text("NOTÍCIAS • EDUCAÇÃO • FÉ • CULTURA • DESPORTO • ENTRETENIMENTO", color = White.copy(alpha = .88f), fontSize = 13.sp, letterSpacing = 1.7.sp, modifier = Modifier.padding(top = 18.dp))
+        }
+
+        Text(
+            slide.title,
+            color = White.copy(alpha = .82f),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.align(Alignment.BottomStart).padding(start = 42.dp, bottom = 14.dp)
+        )
+
+        Row(
+            Modifier.align(Alignment.BottomEnd).padding(end = 28.dp, bottom = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            heroSlides.forEachIndexed { index, _ ->
+                Box(
+                    Modifier.width(if (index == currentIndex) 22.dp else 7.dp)
+                        .height(7.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(if (index == currentIndex) FocusGold else White.copy(alpha = .45f))
+                )
+            }
         }
     }
 }
