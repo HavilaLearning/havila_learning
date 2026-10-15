@@ -282,13 +282,20 @@ private fun FeaturedChannels(requester: FocusRequester, context: android.content
         LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(18.dp), contentPadding = PaddingValues(end = 32.dp)) {
             itemsIndexed(featured) { index, item ->
                 val repositoryChannel = item.repositoryName?.let { name -> ChannelRepository.channels.firstOrNull { it.name == name } }
-                FeaturedChannelCard(item, repositoryChannel?.logoUrl, if (index == 0) requester else null) {
-                    repositoryChannel?.streamUrl?.let { url ->
-                        context.startActivity(Intent(context, PlayerActivity::class.java).apply {
-                            putExtra("streamUrl", url)
-                            putExtra("channelName", item.name)
-                            putExtra("channelIndex", index)
-                        })
+                FeaturedChannelCard(
+                    item = item,
+                    logoUrl = repositoryChannel?.logoUrl,
+                    isPlayable = repositoryChannel?.streamUrl?.let(::isDirectMediaUrl) == true,
+                    requester = if (index == 0) requester else null
+                ) {
+                    repositoryChannel?.let { channel ->
+                        channel.streamUrl?.takeIf(::isDirectMediaUrl)?.let { url ->
+                            context.startActivity(Intent(context, PlayerActivity::class.java).apply {
+                                putExtra("streamUrl", url)
+                                putExtra("channelName", item.name)
+                                putExtra("channelId", channel.id)
+                            })
+                        }
                     }
                 }
             }
@@ -296,22 +303,70 @@ private fun FeaturedChannels(requester: FocusRequester, context: android.content
     }
 }
 
+private fun isDirectMediaUrl(url: String): Boolean {
+    val clean = url.substringBefore('?').lowercase()
+    return clean.endsWith(".m3u8") || clean.endsWith(".mpd") || clean.endsWith(".mp4") || clean.endsWith(".ts")
+}
+
 @Composable
-private fun FeaturedChannelCard(item: FeaturedUi, logoUrl: String?, requester: FocusRequester?, onOpen: () -> Unit) {
+private fun FeaturedChannelCard(
+    item: FeaturedUi,
+    logoUrl: String?,
+    isPlayable: Boolean,
+    requester: FocusRequester?,
+    onOpen: () -> Unit
+) {
     var focused by remember { mutableStateOf(false) }
-    Column((if (requester != null) Modifier.focusRequester(requester) else Modifier).width(265.dp).height(165.dp).scale(if (focused) 1.05f else 1f).onFocusChanged { focused = it.isFocused }.focusable().clickable { onOpen() }) {
-        Box(Modifier.fillMaxWidth().height(105.dp).shadow(if (focused) 18.dp else 0.dp, RoundedCornerShape(10.dp)).clip(RoundedCornerShape(10.dp)).background(Brush.linearGradient(listOf(Color(0xFF334155), Color(0xFF101722))))) {
+    Column(
+        (if (requester != null) Modifier.focusRequester(requester) else Modifier)
+            .width(265.dp)
+            .height(165.dp)
+            .scale(if (focused) 1.05f else 1f)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
+            .clickable(enabled = isPlayable) { onOpen() }
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(105.dp)
+                .shadow(if (focused) 18.dp else 0.dp, RoundedCornerShape(10.dp))
+                .clip(RoundedCornerShape(10.dp))
+                .background(Brush.linearGradient(listOf(Color(0xFF334155), Color(0xFF101722))))
+                .border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(10.dp))
+        ) {
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .55f)))))
-            if (logoUrl != null) {
+
+            if (!logoUrl.isNullOrBlank()) {
                 AsyncImage(
                     model = logoUrl,
                     contentDescription = item.name,
-                    modifier = Modifier.align(Alignment.Center).width(92.dp).height(62.dp)
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .width(74.dp)
+                        .height(74.dp)
                 )
             } else {
-                Text(item.name, color = White, fontSize = 17.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Center))
+                Text(
+                    item.name,
+                    color = White,
+                    fontSize = 25.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.align(Alignment.Center)
+                )
             }
-            Text("AO VIVO", color = White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.TopEnd).padding(horizontal = 9.dp, vertical = 5.dp).background(LiveRed, RoundedCornerShape(7.dp)).padding(horizontal = 6.dp, vertical = 2.dp))
+
+            Text(
+                if (isPlayable) "AO VIVO" else "DISPONIBILIDADE",
+                color = White,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(horizontal = 9.dp, vertical = 5.dp)
+                    .background(if (isPlayable) LiveRed else Color(0xFF566170), RoundedCornerShape(7.dp))
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            )
         }
         Text(item.name, color = White, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 6.dp))
         Text(item.subtitle, color = Muted, fontSize = 13.sp, maxLines = 1)
