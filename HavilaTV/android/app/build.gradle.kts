@@ -12,8 +12,8 @@ android {
         applicationId = "com.havila.tv"
         minSdk = 23
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
     }
 
     buildFeatures { compose = true }
@@ -23,9 +23,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+    kotlinOptions { jvmTarget = "17" }
 
     buildTypes {
         release { isMinifyEnabled = false }
@@ -41,4 +39,5 @@ dependencies {
     implementation("androidx.tv:tv-material:1.0.0")
     implementation("androidx.media3:media3-exoplayer:1.8.0")
     implementation("androidx.media3:media3-ui:1.8.0")
+    implementation("io.coil-kt:coil-compose:2.7.0")
 }
