@@ -39,11 +39,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -99,8 +99,8 @@ private fun HavilaTvHome() {
 private fun SideBar(selected: Int, onSelected: (Int) -> Unit) {
     val items = listOf(
         Icons.Default.Home to "Início",
-        Icons.Default.Tv to "Canais",
-        Icons.Default.GridView to "Categorias",
+        Icons.Default.PlayArrow to "Canais",
+        Icons.Default.List to "Categorias",
         Icons.Default.FavoriteBorder to "Favoritos",
         Icons.Default.Settings to "Configurações"
     )
