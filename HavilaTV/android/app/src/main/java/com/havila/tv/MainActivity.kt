@@ -2,7 +2,7 @@ package com.havila.tv
 
 import android.content.Intent
 import android.os.Bundle
-import androidx.activity.BackHandler
+import androidx.activity.compose.BackHandler
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -197,7 +197,7 @@ private fun MenuItem(index: Int, icon: androidx.compose.ui.graphics.vector.Image
 
 @Composable
 private fun Logo() {
-    Column(Modifier.fillMaxWidth().padding(top = 22.dp, horizontal = 18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(Modifier.fillMaxWidth().padding(start = 18.dp, top = 22.dp, end = 18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.width(48.dp).height(38.dp).border(4.dp, GoldStart, RoundedCornerShape(10.dp)))
             Text("HAVILA", color = White, fontSize = 38.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 7.dp))
@@ -290,13 +290,12 @@ private fun FeaturedChannels(requester: FocusRequester, context: android.content
 private fun FeaturedChannelCard(item: FeaturedUi, requester: FocusRequester?, onOpen: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     Column((if (requester != null) Modifier.focusRequester(requester) else Modifier).width(265.dp).height(165.dp).scale(if (focused) 1.05f else 1f).onFocusChanged { focused = it.isFocused }.focusable().clickable { onOpen() }) {
-        Box(Modifier.fillMaxWidth().height(105.dp).shadow(if (focused) 18.dp else 0.dp, RoundedCornerShape(10.dp)).clip(RoundedCornerShape(10.dp)).background(Brush.linearGradient(listOf(Color(0xFFE8EBEF), Color(0xFF9DA5AD)))).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(10.dp))) {
-            Text(item.name, color = Color(0xFF111318), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.align(Alignment.Center))
-            Box(Modifier.align(Alignment.TopEnd).background(LiveRed, RoundedCornerShape(bottomStart = 8.dp))) {
-                Text("AO VIVO", color = White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp))
-            }
+        Box(Modifier.fillMaxWidth().height(105.dp).shadow(if (focused) 18.dp else 0.dp, RoundedCornerShape(10.dp)).clip(RoundedCornerShape(10.dp)).background(Brush.linearGradient(listOf(Color(0xFF334155), Color(0xFF101722))))) {
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .55f)))))
+            Text("AO VIVO", color = White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.TopEnd).padding(horizontal = 9.dp, vertical = 5.dp).background(LiveRed, RoundedCornerShape(7.dp)).padding(horizontal = 6.dp, vertical = 2.dp))
+            Text(item.name, color = White, fontSize = 17.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Center))
         }
-        Text(item.name, color = White, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp, top = 6.dp))
-        Text(item.subtitle, color = Muted, fontSize = 12.sp, maxLines = 1, modifier = Modifier.padding(start = 8.dp, top = 2.dp))
+        Text(item.name, color = White, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 6.dp))
+        Text(item.subtitle, color = Muted, fontSize = 13.sp, maxLines = 1)
     }
 }
