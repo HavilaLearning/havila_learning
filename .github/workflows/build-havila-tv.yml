@@ -4,10 +4,11 @@ on:
   push:
     branches:
       - havila-tv-stage1
+      - havila-tv-mockup-dashboard
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build-apk:
@@ -25,30 +26,13 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Normalize approved Havila TV icon PNG
+      - name: Verify launcher icon assets
         working-directory: .
         run: |
-          python3 -m pip install --disable-pip-version-check --quiet Pillow
-          python3 - <<'PY'
-          from PIL import Image
-          from pathlib import Path
-
-          source = Path('HavilaTV/android/app/src/main/res/drawable-nodpi/havila_tv_icon.png')
-          mirror = Path('HavilaTV/android/app/src/main/res/drawable/havila_tv_icon.png')
-
-          image = Image.open(source).convert('RGBA')
-          image.save(source, format='PNG', optimize=False)
-          image.save(mirror, format='PNG', optimize=False)
-          print(f'Normalized approved icon: {source} -> {image.size} RGBA PNG')
-          PY
-
-          git config user.name 'HavilaLearning'
-          git config user.email 'actions@users.noreply.github.com'
-          git add HavilaTV/android/app/src/main/res/drawable-nodpi/havila_tv_icon.png HavilaTV/android/app/src/main/res/drawable/havila_tv_icon.png
-          if ! git diff --cached --quiet; then
-            git commit -m 'Fix approved Havila TV icon PNG encoding [skip ci]'
-            git push origin HEAD:havila-tv-stage1
-          fi
+          test -f HavilaTV/android/app/src/main/res/drawable/havila_tv_icon.xml
+          test ! -f HavilaTV/android/app/src/main/res/drawable/havila_tv_icon.png
+          test ! -f HavilaTV/android/app/src/main/res/drawable-nodpi/havila_tv_icon.png
+          echo "Launcher icon uses a valid vector drawable; no broken PNG is referenced."
 
       - name: Install Gradle 8.13
         working-directory: .
