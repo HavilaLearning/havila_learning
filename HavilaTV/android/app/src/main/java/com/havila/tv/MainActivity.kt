@@ -6,7 +6,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,15 +36,17 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+private val navy = Color(0xFF050C16)
+private val navy2 = Color(0xFF0B1B2A)
+private val blue = Color(0xFF123A5A)
+private val blue2 = Color(0xFF1D608D)
 private val gold = Color(0xFFDDBB67)
-private val navy = Color(0xFF06111D)
-private val surface = Color(0xFF102235)
-private val surfaceFocus = Color(0xFF183A55)
-private val textMuted = Color(0xFFB8C6D2)
-private val focusBorder = Color(0xFFF2F6FA)
+private val white = Color(0xFFF5F7FA)
+private val muted = Color(0xFFAAB8C5)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,10 +56,11 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun HavilaTvHome() {
+private fun HavilaTvHome() {
     val context = LocalContext.current
-    val sectionCategories = listOf(
-        "Moçambique" to "Canais moçambicanos",
+    val live = ChannelRepository.channels.filter { it.isLive && !it.streamUrl.isNullOrBlank() }
+    val groups = listOf(
+        "Moçambique" to "Canais nacionais",
         "Gospel" to "Gospel e fé",
         "Notícias" to "Notícias e informação",
         "Entretenimento" to "Entretenimento",
@@ -68,24 +70,21 @@ fun HavilaTvHome() {
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(navy),
-        contentPadding = PaddingValues(start = 54.dp, end = 54.dp, top = 30.dp, bottom = 54.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        contentPadding = PaddingValues(56.dp, 28.dp, 56.dp, 60.dp),
+        verticalArrangement = Arrangement.spacedBy(28.dp)
     ) {
         item { TopBar() }
-        item { HeroBanner() }
-
+        item { PremiumHero() }
         item {
-            SectionHeader("CANAIS AO VIVO", "Use ◀ ▶ e pressione OK")
-            Spacer(Modifier.height(10.dp))
-            ChannelRow(ChannelRepository.channels.filter { it.streamUrl != null }, context)
+            SectionTitle("AO VIVO AGORA", "◀ ▶  navegar   •   OK  assistir")
+            Spacer(Modifier.height(12.dp))
+            ChannelRow(live, context)
         }
-
-        items(sectionCategories) { (category, subtitle) ->
+        items(groups) { (category, subtitle) ->
             val channels = ChannelRepository.byCategory(category)
             if (channels.isNotEmpty()) {
-                Column {
-                    SectionHeader(category.uppercase(), subtitle)
-                    Spacer(Modifier.height(10.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SectionTitle(category.uppercase(), subtitle)
                     ChannelRow(channels, context)
                 }
             }
@@ -96,55 +95,44 @@ fun HavilaTvHome() {
 @Composable
 private fun TopBar() {
     Row(
-        Modifier.fillMaxWidth().height(54.dp),
+        Modifier.fillMaxWidth().height(62.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("HAVILA", color = Color.White, fontSize = 30.sp)
+            Text("HAVILA", color = white, fontSize = 31.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.width(8.dp))
-            Text("TV", color = gold, fontSize = 30.sp)
+            Text("TV", color = gold, fontSize = 31.sp, fontWeight = FontWeight.Bold)
         }
-        Text("ENTRETENIMENTO COM VALORES", color = Color(0xFFD9C88E), fontSize = 13.sp)
+        Text("ENTRETENIMENTO COM VALORES", color = gold, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
 @Composable
-private fun HeroBanner() {
+private fun PremiumHero() {
     Box(
         Modifier.fillMaxWidth().height(210.dp)
             .background(
-                Brush.horizontalGradient(
-                    listOf(Color(0xFF10283D), Color(0xFF1D527A), Color(0xFF10283D))
-                ), RoundedCornerShape(22.dp)
+                Brush.horizontalGradient(listOf(Color(0xFF0B2033), Color(0xFF15527A), Color(0xFF0B2033))),
+                RoundedCornerShape(26.dp)
             )
-            .border(1.dp, Color(0xFF3B6684), RoundedCornerShape(22.dp))
-            .padding(horizontal = 40.dp, vertical = 30.dp)
+            .border(1.dp, Color(0xFF356A8D), RoundedCornerShape(26.dp))
+            .padding(42.dp)
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(0.78f),
-            verticalArrangement = Arrangement.spacedBy(9.dp)
-        ) {
-            Text("BEM-VINDO À HAVILA TV", color = gold, fontSize = 13.sp)
-            Text("Entretenimento com Valores", color = Color.White, fontSize = 34.sp)
-            Text(
-                "Notícias, desporto, gospel, filmes, música e conteúdos para toda a família.",
-                color = Color(0xFFE1EAF0), fontSize = 16.sp
-            )
-            Text("Pressione OK para começar", color = Color.White, fontSize = 13.sp)
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("BEM-VINDO À HAVILA TV", color = gold, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text("Entretenimento com Valores", color = white, fontSize = 36.sp, fontWeight = FontWeight.Bold)
+            Text("Notícias • Desporto • Gospel • Filmes • Música • Família", color = Color(0xFFE0E8EF), fontSize = 17.sp)
+            Text("Selecione um canal e pressione OK", color = white, fontSize = 13.sp)
         }
     }
 }
 
 @Composable
-private fun SectionHeader(title: String, subtitle: String) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(title, color = Color.White, fontSize = 21.sp)
-        Text(subtitle, color = textMuted, fontSize = 12.sp)
+private fun SectionTitle(title: String, subtitle: String) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Text(title, color = white, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        Text(subtitle, color = muted, fontSize = 12.sp)
     }
 }
 
@@ -153,9 +141,9 @@ private fun ChannelRow(channels: List<Channel>, context: android.content.Context
     LazyRow(
         Modifier.fillMaxWidth().focusGroup(),
         horizontalArrangement = Arrangement.spacedBy(18.dp),
-        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 7.dp)
+        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
     ) {
-        items(channels) { channel ->
+        items(channels, key = { it.id }) { channel ->
             ChannelCard(channel) {
                 context.startActivity(Intent(context, PlayerActivity::class.java).apply {
                     putExtra("streamUrl", channel.streamUrl)
@@ -170,33 +158,55 @@ private fun ChannelRow(channels: List<Channel>, context: android.content.Context
 private fun ChannelCard(channel: Channel, onOpen: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     Box(
-        Modifier.width(292.dp).height(142.dp)
-            .scale(if (focused) 1.025f else 1f)
-            .background(if (focused) surfaceFocus else surface, RoundedCornerShape(16.dp))
-            .border(
-                if (focused) 3.dp else 1.dp,
-                if (focused) focusBorder else Color(0xFF2B4961),
-                RoundedCornerShape(16.dp)
-            )
+        Modifier.width(300.dp).height(164.dp)
+            .scale(if (focused) 1.035f else 1f)
+            .background(if (focused) blue2 else navy2, RoundedCornerShape(18.dp))
+            .border(if (focused) 3.dp else 1.dp, if (focused) Color.White else Color(0xFF28455D), RoundedCornerShape(18.dp))
             .onFocusChanged { focused = it.isFocused }
-            .clickable(enabled = channel.streamUrl != null) { onOpen() }
             .focusable()
-            .padding(horizontal = 20.dp, vertical = 17.dp)
+            .clickableTv(onOpen)
+            .padding(18.dp)
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(0.82f),
-            verticalArrangement = Arrangement.spacedBy(7.dp)
-        ) {
-            Text(
-                if (channel.streamUrl != null) "●  AO VIVO" else "○  DISPONÍVEL EM BREVE",
-                color = if (channel.streamUrl != null) Color(0xFF8DE0AA) else textMuted,
-                fontSize = 10.sp
-            )
-            Text(channel.name, color = Color.White, fontSize = 19.sp)
-            Text(channel.description, color = textMuted, fontSize = 12.sp, maxLines = 2)
-        }
-        if (channel.streamUrl != null) {
-            Text("▶", color = gold, fontSize = 25.sp, modifier = Modifier.align(Alignment.CenterEnd))
+        Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+            LogoBadge(channel)
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Text(if (channel.isLive) "●  AO VIVO" else "CANAL", color = if (channel.isLive) Color(0xFF7FE3A0) else muted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Text(channel.name, color = white, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 2)
+                Text(channel.description, color = muted, fontSize = 11.sp, maxLines = 2)
+            }
         }
     }
 }
+
+@Composable
+private fun LogoBadge(channel: Channel) {
+    val initials = when (channel.id) {
+        "tvm" -> "TVM"
+        "tv-sucesso" -> "TVS"
+        "mbc-mozambique" -> "MBC"
+        "miramar" -> "MM"
+        "rtp-africa" -> "RTP"
+        "africanews" -> "AN"
+        "dw" -> "DW"
+        "france24" -> "24"
+        "euronews" -> "EU"
+        "emmanuel-tv" -> "ETV"
+        "good-news-tv" -> "GNTV"
+        else -> channel.name.take(3).uppercase()
+    }
+    Box(
+        Modifier.width(82.dp).height(82.dp)
+            .background(Color(0xFF081521), RoundedCornerShape(14.dp))
+            .border(1.dp, gold.copy(alpha = .65f), RoundedCornerShape(14.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(initials, color = if (channel.category == "Gospel") gold else white, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+    }
+}
+
+private fun Modifier.clickableTv(onClick: () -> Unit): Modifier = this.then(
+    Modifier.focusable().run {
+        androidx.compose.foundation.clickable { onClick() }
+    }
+)
