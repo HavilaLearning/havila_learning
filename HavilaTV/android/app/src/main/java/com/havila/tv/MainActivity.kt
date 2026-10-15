@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -350,7 +351,7 @@ private fun localLogoResource(id: String): Int? = when (id) {
     "goodnews" -> R.drawable.goodnews_tv_logo
     "hope" -> R.drawable.hope_channel_logo
     "loveworldsat" -> R.drawable.loveworld_sat_logo
-    "goodnews-world" -> R.drawable.goodnews_tv_logo
+    "goodnews-world" -> R.drawable.goodnews_world_tv_logo
     else -> null
 }
 
@@ -382,7 +383,7 @@ private fun FeaturedChannelCard(
         ) {
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .55f)))))
             if (logoResource != null) {
-                androidx.compose.foundation.Image(
+                Image(
                     painter = painterResource(logoResource),
                     contentDescription = item.name,
                     modifier = Modifier.align(Alignment.Center).width(150.dp).height(78.dp)
