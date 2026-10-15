@@ -22,7 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -181,9 +181,13 @@ private fun FeaturedChannels(channels: List<Channel>, context: android.content.C
         Text("CANAIS EM DESTAQUE", color = White, fontSize = 21.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
         Spacer(Modifier.height(10.dp))
         LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(18.dp), contentPadding = PaddingValues(end = 32.dp)) {
-            items(channels.take(10), key = { it.id }) { channel ->
+            itemsIndexed(channels.take(10), key = { _, channel -> channel.id }) { index, channel ->
                 FeaturedChannelCard(channel) {
-                    context.startActivity(Intent(context, PlayerActivity::class.java).apply { putExtra("streamUrl", channel.streamUrl); putExtra("channelName", channel.name) })
+                    context.startActivity(Intent(context, PlayerActivity::class.java).apply {
+                        putExtra("streamUrl", channel.streamUrl)
+                        putExtra("channelName", channel.name)
+                        putExtra("channelIndex", index)
+                    })
                 }
             }
         }
