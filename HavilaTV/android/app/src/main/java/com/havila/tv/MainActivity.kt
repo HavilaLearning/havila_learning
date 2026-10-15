@@ -315,18 +315,21 @@ private fun FeaturedChannels(requester: FocusRequester, context: android.content
                 val repositoryChannel = item.repositoryName?.let { name ->
                     ChannelRepository.channels.firstOrNull { it.name.equals(name, ignoreCase = true) }
                 }
+                val hasSource = repositoryChannel != null && (
+                    repositoryChannel.streamUrl?.let(PlaylistResolver::isDirectMediaUrl) == true ||
+                        repositoryChannel.playlistUrls.isNotEmpty()
+                    )
                 FeaturedChannelCard(
                     item = item,
                     logoResource = localLogoResource(item.id),
-                    isPlayable = repositoryChannel?.streamUrl?.let(::isDirectMediaUrl) == true,
+                    isPlayable = hasSource,
                     requester = if (index == 0) requester else null,
                     menuRequester = menuRequester
                 ) {
-                    if (repositoryChannel != null && repositoryChannel.streamUrl?.let(::isDirectMediaUrl) == true) {
+                    if (repositoryChannel != null && hasSource) {
                         context.startActivity(Intent(context, PlayerActivity::class.java).apply {
-                            putExtra("streamUrl", repositoryChannel.streamUrl)
-                            putExtra("channelName", item.name)
                             putExtra("channelId", repositoryChannel.id)
+                            putExtra("channelName", item.name)
                         })
                     }
                 }
@@ -349,11 +352,6 @@ private fun localLogoResource(id: String): Int? = when (id) {
     "loveworldsat" -> R.drawable.loveworld_sat_logo
     "goodnews-world" -> R.drawable.goodnews_tv_logo
     else -> null
-}
-
-private fun isDirectMediaUrl(url: String): Boolean {
-    val clean = url.substringBefore('?').lowercase()
-    return clean.endsWith(".m3u8") || clean.endsWith(".mpd") || clean.endsWith(".mp4") || clean.endsWith(".ts")
 }
 
 @Composable
