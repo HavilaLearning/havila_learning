@@ -4,9 +4,9 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,45 +19,84 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import coil.compose.AsyncImage
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.tv.material3.ExperimentalTvMaterial3Api
+import androidx.tv.material3.Surface
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
-private val Bg = Color(0xFF030A12)
-private val Gold = Color(0xFFF2B82B)
-private val White = Color(0xFFF7F7F7)
-private val Muted = Color(0xFFC0C5CA)
-private val CardBorder = Color(0xFF34404B)
+private val Bg = Color(0xFF070B14)
+private val SurfaceDark = Color(0xFF0F1624)
+private val White = Color(0xFFFFFFFF)
+private val Muted = Color(0xFFA8B0BF)
+private val GoldStart = Color(0xFFF2C14E)
+private val GoldEnd = Color(0xFFC8901E)
+private val FocusGold = Color(0xFFFFC94D)
+private val LiveRed = Color(0xFFE53935)
+private val CardBorder = Color(0xFF273447)
+
+private data class CategoryUi(val name: String, val icon: @Composable () -> Unit, val art: Brush)
+private data class FeaturedUi(val id: String, val name: String, val subtitle: String, val repositoryName: String? = null)
+
+private val categories = listOf(
+    CategoryUi("Notícias", { Icon(Icons.Default.GridView, null, tint = White, modifier = Modifier.width(38.dp)) }, Brush.linearGradient(listOf(Color(0xFF0D5AA7), Color(0xFF07182E)))),
+    CategoryUi("Gospel", { Text("✝", color = White, fontSize = 40.sp, fontWeight = FontWeight.Bold) }, Brush.linearGradient(listOf(Color(0xFF9B4B1A), Color(0xFF22120C)))),
+    CategoryUi("Desporto", { Text("⚽", color = White, fontSize = 38.sp) }, Brush.linearGradient(listOf(Color(0xFF164D72), Color(0xFF071D2D)))),
+    CategoryUi("Filmes", { Text("▣", color = White, fontSize = 40.sp, fontWeight = FontWeight.Bold) }, Brush.linearGradient(listOf(Color(0xFF8D2118), Color(0xFF210909)))),
+    CategoryUi("Havila Kids", { Text("♣", color = White, fontSize = 40.sp, fontWeight = FontWeight.Bold) }, Brush.linearGradient(listOf(Color(0xFF4B9C57), Color(0xFF183B22)))),
+    CategoryUi("Música", { Text("♫", color = White, fontSize = 42.sp, fontWeight = FontWeight.Bold) }, Brush.linearGradient(listOf(Color(0xFF7040A0), Color(0xFF20132F)))),
+    CategoryUi("Moçambique", { Text("◆", color = White, fontSize = 36.sp, fontWeight = FontWeight.Bold) }, Brush.linearGradient(listOf(Color(0xFF08764E), Color(0xFF102B26)))),
+    CategoryUi("Família", { Text("●", color = White, fontSize = 40.sp, fontWeight = FontWeight.Bold) }, Brush.linearGradient(listOf(Color(0xFF8B6A48), Color(0xFF261C15))))
+)
+
+private val featured = listOf(
+    FeaturedUi("tvc", "TVC", "Notícias e Actualidade"),
+    FeaturedUi("stv", "STV", "Entretenimento"),
+    FeaturedUi("miramar", "Miramar TV", "Informação e Cultura", "Miramar"),
+    FeaturedUi("tvm", "TVM", "Moçambique em Primeiro", "TVM"),
+    FeaturedUi("gospel", "Gospel Channel", "Fé e Esperança"),
+    FeaturedUi("supersport", "SuperSport", "Desporto ao Vivo")
+)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,130 +105,201 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private data class CategoryUi(val name: String, val image: String, val icon: String)
-
-private val categories = listOf(
-    CategoryUi("Notícias", "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=900&q=80", "▤"),
-    CategoryUi("Gospel", "https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=900&q=80", "✝"),
-    CategoryUi("Desporto", "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=900&q=80", "⚽"),
-    CategoryUi("Filmes", "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=900&q=80", "▣"),
-    CategoryUi("Havila Kids", "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=900&q=80", "♣"),
-    CategoryUi("Música", "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=900&q=80", "♫"),
-    CategoryUi("Moçambique", "https://images.unsplash.com/photo-1523805009345-7448845a9e53?auto=format&fit=crop&w=900&q=80", "◈"),
-    CategoryUi("Família", "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=900&q=80", "●")
-)
-
+@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 private fun HavilaTvHome() {
-    val context = LocalContext.current
-    var selected by remember { mutableStateOf(0) }
-    val live = ChannelRepository.channels.filter { it.isLive && !it.streamUrl.isNullOrBlank() }
-    Row(Modifier.fillMaxSize().background(Bg)) {
-        SideBar(selected) { selected = it }
-        Column(Modifier.fillMaxSize().padding(end = 28.dp)) {
-            TopActions()
-            Hero()
-            CategorySection()
-            FeaturedChannels(live, context)
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var selectedMenu by remember { mutableStateOf(0) }
+    var showExitDialog by remember { mutableStateOf(false) }
+    var clock by remember { mutableStateOf(currentTime()) }
+    val menuRequester = remember { FocusRequester() }
+    val categoryRequester = remember { FocusRequester() }
+    val channelRequester = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            clock = currentTime()
+            kotlinx.coroutines.delay(30_000)
+        }
+    }
+
+    BackHandler {
+        if (selectedMenu == 0) showExitDialog = true else {
+            selectedMenu = 0
+            menuRequester.requestFocus()
+        }
+    }
+
+    Box(Modifier.fillMaxSize().background(Bg)) {
+        Row(Modifier.fillMaxSize()) {
+            SideBar(
+                selected = selectedMenu,
+                requester = menuRequester,
+                onSelected = { selectedMenu = it },
+                onExit = { showExitDialog = true }
+            )
+            Column(Modifier.fillMaxSize().padding(end = 28.dp)) {
+                TopActions(clock)
+                Hero()
+                CategorySection(categoryRequester, channelRequester)
+                FeaturedChannels(channelRequester, context)
+            }
+        }
+    }
+
+    if (showExitDialog) {
+        AlertDialog(
+            onDismissRequest = { showExitDialog = false },
+            title = { Text("Sair da Havila TV", fontWeight = FontWeight.Bold) },
+            text = { Text("Deseja realmente sair da aplicação?") },
+            confirmButton = { TextButton(onClick = { context as? ComponentActivity?.finish() }) { Text("Sair") } },
+            dismissButton = { TextButton(onClick = { showExitDialog = false }) { Text("Cancelar") } }
+        )
+    }
+}
+
+private fun currentTime(): String = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+
+@Composable
+private fun SideBar(selected: Int, requester: FocusRequester, onSelected: (Int) -> Unit, onExit: () -> Unit) {
+    val items = listOf(
+        Icons.Default.Home to "Início",
+        Icons.Default.Tv to "Canais",
+        Icons.Default.GridView to "Categorias",
+        Icons.Default.FavoriteBorder to "Favoritos",
+        Icons.Default.Settings to "Configurações"
+    )
+    Column(
+        Modifier.width(290.dp).fillMaxHeight().background(Color(0xFF050B14)).border(1.dp, Color(0xFF1E2A39)),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Logo()
+        Spacer(Modifier.height(28.dp))
+        items.forEachIndexed { index, item ->
+            MenuItem(index, item.first, item.second, selected == index, requester, onSelected)
         }
     }
 }
 
 @Composable
-private fun SideBar(selected: Int, onSelected: (Int) -> Unit) {
-    val items = listOf(
-        Icons.Default.Home to "Início",
-        Icons.Default.PlayArrow to "Canais",
-        Icons.Default.List to "Categorias",
-        Icons.Default.FavoriteBorder to "Favoritos",
-        Icons.Default.Settings to "Configurações"
-    )
-    Column(Modifier.width(260.dp).fillMaxHeight().background(Color(0xFF050E18)).padding(top = 22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Logo()
-        Spacer(Modifier.height(32.dp))
-        items.forEachIndexed { index, item ->
-            val active = selected == index
-            Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp).clip(RoundedCornerShape(0.dp, 18.dp, 18.dp, 0.dp)).background(if (active) Gold else Color.Transparent).clickable { onSelected(index) }.focusable(), verticalAlignment = Alignment.CenterVertically) {
-                Icon(item.first, item.second, tint = if (active) Color.Black else White, modifier = Modifier.padding(start = 28.dp).width(30.dp))
-                Text(item.second, color = if (active) Color.Black else White, fontSize = 17.sp, fontWeight = if (active) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.padding(horizontal = 18.dp, vertical = 18.dp))
+private fun MenuItem(index: Int, icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, active: Boolean, requester: FocusRequester, onSelected: (Int) -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val menuFocus = if (index == 0) Modifier.focusRequesterSafe(requester) else Modifier
+    Row(
+        menuFocus.fillMaxWidth().height(72.dp).padding(horizontal = 10.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(0.dp, 18.dp, 18.dp, 0.dp))
+            .background(if (active) Brush.horizontalGradient(listOf(GoldStart, GoldEnd)) else Brush.linearGradient(listOf(Color.Transparent, Color.Transparent)))
+            .onFocusChanged { focused = it.isFocused }
+            .border(if (focused) 2.dp else 0.dp, if (focused) FocusGold else Color.Transparent, RoundedCornerShape(18.dp))
+            .focusable()
+            .focusProperties { right = FocusRequester.Cancel }
+            .then(Modifier),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, label, tint = if (active) Color(0xFF10151C) else White.copy(alpha = .82f), modifier = Modifier.padding(start = 28.dp).width(30.dp))
+        Text(label, color = if (active) Color(0xFF10151C) else White.copy(alpha = .9f), fontSize = 18.sp, fontWeight = if (active) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.padding(start = 18.dp))
+    }
+}
+
+private fun Modifier.focusRequesterSafe(requester: FocusRequester): Modifier = this.then(Modifier.focusRequester(requester))
+
+@Composable
+private fun Logo() {
+    Column(Modifier.fillMaxWidth().padding(top = 22.dp, horizontal = 18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.width(48.dp).height(38.dp).border(4.dp, GoldStart, RoundedCornerShape(10.dp))) {
+                Box(Modifier.width(5.dp).height(5.dp).background(GoldStart).align(Alignment.TopCenter).offset(y = (-9).dp))
+            }
+            Text("HAVILA", color = White, fontSize = 38.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 7.dp))
+            Text("TV", color = GoldStart, fontSize = 35.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 5.dp))
+        }
+        Text("Boa Informação. Bons Valores. Para Toda a Família.", color = Muted, fontSize = 9.sp, maxLines = 1, modifier = Modifier.padding(top = 5.dp))
+    }
+}
+
+@Composable
+private fun TopActions(time: String) {
+    Row(Modifier.fillMaxWidth().height(66.dp).padding(horizontal = 10.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Default.Search, "Pesquisar", tint = White, modifier = Modifier.width(26.dp))
+        Text("Pesquisar", color = White, fontSize = 17.sp, modifier = Modifier.padding(start = 8.dp, end = 38.dp))
+        Icon(Icons.Default.Settings, "Configurações", tint = White, modifier = Modifier.width(27.dp))
+        Text("Configurações", color = White, fontSize = 17.sp, modifier = Modifier.padding(start = 8.dp, end = 42.dp))
+        Text(time, color = White, fontSize = 19.sp)
+    }
+}
+
+@Composable
+private fun Hero() {
+    Box(Modifier.fillMaxWidth().height(285.dp).clip(RoundedCornerShape(0.dp, 0.dp, 18.dp, 18.dp))) {
+        Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(Color(0xFF0A1825), Color(0xFF7E4424), Color(0xFFE9A83A)))))
+        Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Bg.copy(alpha = .97f), Bg.copy(alpha = .70f), Color.Transparent))))
+        Box(Modifier.width(70.dp).height(70.dp).background(Color(0xFFFFD36B), RoundedCornerShape(50.dp)).align(Alignment.TopEnd).offset(x = (-115).dp, y = 78.dp))
+        Column(Modifier.padding(start = 42.dp, top = 34.dp)) {
+            Text("Bem-vindo à Havila TV", color = White, fontSize = 52.sp, fontWeight = FontWeight.ExtraBold)
+            Text("Televisão digital para toda a família", color = Muted, fontSize = 28.sp, modifier = Modifier.padding(top = 2.dp))
+            Text("NOTÍCIAS • EDUCAÇÃO • FÉ • CULTURA • DESPORTO • ENTRETENIMENTO", color = White.copy(alpha = .88f), fontSize = 13.sp, letterSpacing = 1.7.sp, modifier = Modifier.padding(top = 18.dp))
+        }
+    }
+}
+
+@Composable
+private fun CategorySection(categoryRequester: FocusRequester, channelRequester: FocusRequester) {
+    Column(Modifier.padding(start = 30.dp, top = 14.dp)) {
+        Text("CATEGORIAS", color = White, fontSize = 21.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
+        Spacer(Modifier.height(10.dp))
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(4),
+            modifier = Modifier.fillMaxWidth().height(348.dp).focusGroup(),
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            contentPadding = PaddingValues(end = 24.dp, bottom = 8.dp)
+        ) {
+            itemsIndexed(categories) { index, category ->
+                CategoryCard(category, if (index == 0) categoryRequester else null, channelRequester)
             }
         }
     }
 }
 
 @Composable
-private fun Logo() {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text("HAVILA", color = White, fontSize = 39.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).sp)
-            Spacer(Modifier.width(7.dp))
-            Text("TV", color = Gold, fontSize = 35.sp, fontWeight = FontWeight.ExtraBold)
-        }
-        Text("Boa Informação. Bons Valores. Para Toda a Família.", color = Muted, fontSize = 9.sp, maxLines = 1)
-    }
-}
-
-@Composable
-private fun TopActions() {
-    Row(Modifier.fillMaxWidth().height(58.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Default.Search, "Pesquisar", tint = White, modifier = Modifier.width(24.dp))
-        Text("Pesquisar", color = White, fontSize = 16.sp, modifier = Modifier.padding(start = 9.dp, end = 34.dp))
-        Icon(Icons.Default.Settings, "Configurações", tint = White, modifier = Modifier.width(25.dp))
-        Text("Configurações", color = White, fontSize = 16.sp, modifier = Modifier.padding(start = 9.dp, end = 38.dp))
-        Text("18:24", color = White, fontSize = 17.sp)
-    }
-}
-
-@Composable
-private fun Hero() {
-    Box(Modifier.fillMaxWidth().height(290.dp).clip(RoundedCornerShape(0.dp, 0.dp, 20.dp, 20.dp)), contentAlignment = Alignment.CenterStart) {
-        AsyncImage(model = "https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?auto=format&fit=crop&w=1800&q=85", contentDescription = "Havila TV hero", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().alpha(.72f))
-        Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Bg.copy(alpha = .96f), Bg.copy(alpha = .48f), Color.Transparent))))
-        Column(Modifier.padding(start = 42.dp, top = 22.dp)) {
-            Text("Bem-vindo à Havila TV", color = White, fontSize = 42.sp, fontWeight = FontWeight.ExtraBold)
-            Text("Televisão digital para toda a família", color = White, fontSize = 25.sp, modifier = Modifier.padding(top = 4.dp))
-            Text("NOTÍCIAS  •  EDUCAÇÃO  •  FÉ  •  CULTURA  •  DESPORTO  •  ENTRETENIMENTO", color = White.copy(alpha = .9f), fontSize = 14.sp, letterSpacing = 1.sp, modifier = Modifier.padding(top = 20.dp))
-        }
-    }
-}
-
-@Composable
-private fun CategorySection() {
-    Column(Modifier.padding(start = 30.dp, top = 4.dp)) {
-        Text("CATEGORIAS", color = White, fontSize = 21.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-        Spacer(Modifier.height(12.dp))
-        LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(18.dp), contentPadding = PaddingValues(end = 24.dp)) {
-            itemsIndexed(categories) { _, category -> CategoryCard(category) }
-        }
-    }
-}
-
-@Composable
-private fun CategoryCard(category: CategoryUi) {
+private fun CategoryCard(category: CategoryUi, requester: FocusRequester?, channelRequester: FocusRequester) {
     var focused by remember { mutableStateOf(false) }
-    Box(Modifier.width(280.dp).height(112.dp).scale(if (focused) 1.025f else 1f).clip(RoundedCornerShape(12.dp)).border(if (focused) 3.dp else 1.dp, if (focused) Gold else CardBorder, RoundedCornerShape(12.dp)).onFocusChanged { focused = it.isFocused }.focusable().clickable { }) {
-        AsyncImage(model = category.image, contentDescription = category.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().alpha(.9f))
-        Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Color.Black.copy(alpha = .55f), Color.Black.copy(alpha = .25f), Color.Black.copy(alpha = .65f)))))
-        Row(Modifier.align(Alignment.Center).padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(category.icon, color = White, fontSize = 34.sp, fontWeight = FontWeight.Bold)
-            Text(category.name, color = White, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 16.dp))
+    val base = Modifier.width(360.dp).height(160.dp)
+    Box(
+        (if (requester != null) base.focusRequesterSafe(requester) else base)
+            .scale(if (focused) 1.05f else 1f)
+            .shadow(if (focused) 18.dp else 0.dp, RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .background(category.art)
+            .border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(12.dp))
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
+            .focusProperties { down = channelRequester }
+    ) {
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .75f)))))
+        Row(Modifier.align(Alignment.BottomStart).padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+            category.icon()
+            Text(category.name, color = White, fontSize = 21.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 14.dp))
         }
     }
 }
 
 @Composable
-private fun FeaturedChannels(channels: List<Channel>, context: android.content.Context) {
-    Column(Modifier.padding(start = 30.dp, top = 20.dp)) {
-        Text("CANAIS EM DESTAQUE", color = White, fontSize = 21.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-        Spacer(Modifier.height(10.dp))
+private fun FeaturedChannels(requester: FocusRequester, context: android.content.Context) {
+    Column(Modifier.padding(start = 30.dp, top = 8.dp)) {
+        Text("CANAIS EM DESTAQUE", color = White, fontSize = 21.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
+        Spacer(Modifier.height(8.dp))
         LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(18.dp), contentPadding = PaddingValues(end = 32.dp)) {
-            itemsIndexed(channels.take(10), key = { _, channel -> channel.id }) { index, channel ->
-                FeaturedChannelCard(channel) {
-                    context.startActivity(Intent(context, PlayerActivity::class.java).apply {
-                        putExtra("streamUrl", channel.streamUrl)
-                        putExtra("channelName", channel.name)
-                        putExtra("channelIndex", index)
-                    })
+            itemsIndexed(featured) { index, item ->
+                val repositoryChannel = item.repositoryName?.let { name -> ChannelRepository.channels.firstOrNull { it.name == name } }
+                FeaturedChannelCard(item, repositoryChannel, if (index == 0) requester else null) {
+                    repositoryChannel?.streamUrl?.let { url ->
+                        context.startActivity(Intent(context, PlayerActivity::class.java).apply {
+                            putExtra("streamUrl", url)
+                            putExtra("channelName", item.name)
+                            putExtra("channelIndex", index)
+                        })
+                    }
                 }
             }
         }
@@ -197,15 +307,17 @@ private fun FeaturedChannels(channels: List<Channel>, context: android.content.C
 }
 
 @Composable
-private fun FeaturedChannelCard(channel: Channel, onOpen: () -> Unit) {
+private fun FeaturedChannelCard(item: FeaturedUi, channel: Channel?, requester: FocusRequester?, onOpen: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    Column(Modifier.width(210.dp).scale(if (focused) 1.025f else 1f).onFocusChanged { focused = it.isFocused }.focusable().clickable { onOpen() }) {
-        Box(Modifier.fillMaxWidth().height(105.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFFE9E9E9)).border(if (focused) 3.dp else 1.dp, if (focused) Gold else CardBorder, RoundedCornerShape(10.dp))) {
-            if (!channel.logoUrl.isNullOrBlank()) AsyncImage(model = channel.logoUrl, contentDescription = channel.name, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize().padding(18.dp))
-            else Text(channel.name, color = Color.Black, fontSize = 19.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Center))
-            if (channel.isLive) Box(Modifier.align(Alignment.TopEnd).background(Color(0xFFE51D2A), RoundedCornerShape(bottomStart = 8.dp))) { Text("AO VIVO", color = White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp)) }
+    val base = Modifier.width(265.dp).height(165.dp)
+    Column((if (requester != null) base.focusRequesterSafe(requester) else base).scale(if (focused) 1.05f else 1f).onFocusChanged { focused = it.isFocused }.focusable()) {
+        Box(Modifier.fillMaxWidth().height(105.dp).shadow(if (focused) 18.dp else 0.dp, RoundedCornerShape(10.dp)).clip(RoundedCornerShape(10.dp)).background(Brush.linearGradient(listOf(Color(0xFFE8EBEF), Color(0xFF9DA5AD)))).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(10.dp))) {
+            Text(item.name, color = Color(0xFF111318), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.align(Alignment.Center))
+            Box(Modifier.align(Alignment.TopEnd).background(LiveRed, RoundedCornerShape(bottomStart = 8.dp))) {
+                Text("AO VIVO", color = White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp))
+            }
         }
-        Text(channel.name, color = White, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp, top = 7.dp))
-        Text(channel.description, color = Muted, fontSize = 12.sp, maxLines = 1, modifier = Modifier.padding(start = 8.dp, top = 2.dp))
+        Text(item.name, color = White, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp, top = 6.dp))
+        Text(item.subtitle, color = Muted, fontSize = 12.sp, maxLines = 1, modifier = Modifier.padding(start = 8.dp, top = 2.dp))
     }
 }
