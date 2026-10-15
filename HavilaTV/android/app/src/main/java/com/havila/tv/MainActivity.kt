@@ -103,7 +103,11 @@ private val featured = listOf(
     FeaturedUi("miramar", "Miramar TV", "Informação e Cultura", "Miramar"),
     FeaturedUi("tvm", "TVM", "Moçambique em Primeiro", "TVM"),
     FeaturedUi("gospel", "Gospel Channel", "Fé e Esperança", "Gospel Channel"),
-    FeaturedUi("supersport", "SuperSport", "Desporto ao Vivo", "SuperSport")
+    FeaturedUi("supersport", "SuperSport", "Desporto ao Vivo", "SuperSport"),
+    FeaturedUi("dw", "DW", "Informação internacional", "DW"),
+    FeaturedUi("loveworldsat", "LoveworldSAT", "Programação cristã 24 horas", "LoveworldSAT"),
+    FeaturedUi("france24", "France 24", "Notícias internacionais", "France 24"),
+    FeaturedUi("euronews", "Euronews", "Notícias da Europa e do mundo", "Euronews")
 )
 
 class MainActivity : ComponentActivity() {
@@ -288,14 +292,12 @@ private fun FeaturedChannels(requester: FocusRequester, context: android.content
                     isPlayable = repositoryChannel?.streamUrl?.let(::isDirectMediaUrl) == true,
                     requester = if (index == 0) requester else null
                 ) {
-                    repositoryChannel?.let { channel ->
-                        channel.streamUrl?.takeIf(::isDirectMediaUrl)?.let { url ->
-                            context.startActivity(Intent(context, PlayerActivity::class.java).apply {
-                                putExtra("streamUrl", url)
-                                putExtra("channelName", item.name)
-                                putExtra("channelId", channel.id)
-                            })
-                        }
+                    if (repositoryChannel != null) {
+                        context.startActivity(Intent(context, PlayerActivity::class.java).apply {
+                            repositoryChannel.streamUrl?.takeIf(::isDirectMediaUrl)?.let { putExtra("streamUrl", it) }
+                            putExtra("channelName", item.name)
+                            putExtra("channelId", repositoryChannel.id)
+                        })
                     }
                 }
             }
@@ -315,7 +317,7 @@ private fun FeaturedChannelCard(item: FeaturedUi, logoUrl: String?, isPlayable: 
         (if (requester != null) Modifier.focusRequester(requester) else Modifier)
             .width(265.dp).height(165.dp).scale(if (focused) 1.05f else 1f)
             .onFocusChanged { focused = it.isFocused }.focusable()
-            .clickable(enabled = isPlayable) { onOpen() }
+            .clickable { onOpen() }
             .focusProperties { up = requester ?: FocusRequester.Default }
     ) {
         Box(Modifier.fillMaxWidth().height(105.dp).shadow(if (focused) 18.dp else 0.dp, RoundedCornerShape(10.dp)).clip(RoundedCornerShape(10.dp)).background(Brush.linearGradient(listOf(Color(0xFF334155), Color(0xFF101722)))).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(10.dp))) {
@@ -325,7 +327,7 @@ private fun FeaturedChannelCard(item: FeaturedUi, logoUrl: String?, isPlayable: 
             } else {
                 Text(item.name, color = White, fontSize = 25.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.align(Alignment.Center))
             }
-            Text(if (isPlayable) "AO VIVO" else "DISPONIBILIDADE", color = White, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.TopEnd).padding(horizontal = 9.dp, vertical = 5.dp).background(if (isPlayable) LiveRed else Color(0xFF566170), RoundedCornerShape(7.dp)).padding(horizontal = 6.dp, vertical = 2.dp))
+            Text(if (isPlayable) "AO VIVO" else "INDISPONÍVEL", color = White, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.TopEnd).padding(horizontal = 9.dp, vertical = 5.dp).background(if (isPlayable) LiveRed else Color(0xFF566170), RoundedCornerShape(7.dp)).padding(horizontal = 6.dp, vertical = 2.dp))
         }
         Text(item.name, color = White, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 6.dp))
         Text(item.subtitle, color = Muted, fontSize = 13.sp, maxLines = 1)
