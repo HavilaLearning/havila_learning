@@ -2,8 +2,8 @@ package com.havila.tv
 
 import android.content.Intent
 import android.os.Bundle
-import androidx.activity.compose.BackHandler
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -30,11 +30,19 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed as gridItemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChildCare
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SportsSoccer
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -57,9 +65,11 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -73,18 +83,18 @@ private val FocusGold = Color(0xFFFFC94D)
 private val LiveRed = Color(0xFFE53935)
 private val CardBorder = Color(0xFF273447)
 
-private data class CategoryUi(val name: String, val icon: @Composable () -> Unit, val art: Brush)
+private data class CategoryUi(val name: String, val icon: ImageVector, val art: Brush)
 private data class FeaturedUi(val id: String, val name: String, val subtitle: String, val repositoryName: String? = null)
 
 private val categories = listOf(
-    CategoryUi("Notícias", { Icon(Icons.Default.GridView, null, tint = White, modifier = Modifier.width(38.dp)) }, Brush.linearGradient(listOf(Color(0xFF0D5AA7), Color(0xFF07182E)))),
-    CategoryUi("Gospel", { Text("✝", color = White, fontSize = 40.sp, fontWeight = FontWeight.Bold) }, Brush.linearGradient(listOf(Color(0xFF9B4B1A), Color(0xFF22120C)))),
-    CategoryUi("Desporto", { Text("⚽", color = White, fontSize = 38.sp) }, Brush.linearGradient(listOf(Color(0xFF164D72), Color(0xFF071D2D)))),
-    CategoryUi("Filmes", { Text("▣", color = White, fontSize = 40.sp, fontWeight = FontWeight.Bold) }, Brush.linearGradient(listOf(Color(0xFF8D2118), Color(0xFF210909)))),
-    CategoryUi("Havila Kids", { Text("♣", color = White, fontSize = 40.sp, fontWeight = FontWeight.Bold) }, Brush.linearGradient(listOf(Color(0xFF4B9C57), Color(0xFF183B22)))),
-    CategoryUi("Música", { Text("♫", color = White, fontSize = 42.sp, fontWeight = FontWeight.Bold) }, Brush.linearGradient(listOf(Color(0xFF7040A0), Color(0xFF20132F)))),
-    CategoryUi("Moçambique", { Text("◆", color = White, fontSize = 36.sp, fontWeight = FontWeight.Bold) }, Brush.linearGradient(listOf(Color(0xFF08764E), Color(0xFF102B26)))),
-    CategoryUi("Família", { Text("●", color = White, fontSize = 40.sp, fontWeight = FontWeight.Bold) }, Brush.linearGradient(listOf(Color(0xFF8B6A48), Color(0xFF261C15))))
+    CategoryUi("Notícias", Icons.Default.Public, Brush.linearGradient(listOf(Color(0xFF0D5AA7), Color(0xFF07182E)))),
+    CategoryUi("Gospel", Icons.Default.Favorite, Brush.linearGradient(listOf(Color(0xFF9B4B1A), Color(0xFF22120C)))),
+    CategoryUi("Desporto", Icons.Default.SportsSoccer, Brush.linearGradient(listOf(Color(0xFF164D72), Color(0xFF071D2D)))),
+    CategoryUi("Filmes", Icons.Default.Movie, Brush.linearGradient(listOf(Color(0xFF8D2118), Color(0xFF210909)))),
+    CategoryUi("Havila Kids", Icons.Default.ChildCare, Brush.linearGradient(listOf(Color(0xFF4B9C57), Color(0xFF183B22)))),
+    CategoryUi("Música", Icons.Default.MusicNote, Brush.linearGradient(listOf(Color(0xFF7040A0), Color(0xFF20132F)))),
+    CategoryUi("Moçambique", Icons.Default.Flag, Brush.linearGradient(listOf(Color(0xFF08764E), Color(0xFF102B26)))),
+    CategoryUi("Família", Icons.Default.Group, Brush.linearGradient(listOf(Color(0xFF8B6A48), Color(0xFF261C15))))
 )
 
 private val featured = listOf(
@@ -177,7 +187,7 @@ private fun SideBar(selected: Int, requester: FocusRequester, onSelected: (Int) 
 }
 
 @Composable
-private fun MenuItem(index: Int, icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, active: Boolean, requester: FocusRequester, onSelected: (Int) -> Unit) {
+private fun MenuItem(index: Int, icon: ImageVector, label: String, active: Boolean, requester: FocusRequester, onSelected: (Int) -> Unit) {
     var focused by remember { mutableStateOf(false) }
     Row(
         Modifier.then(if (index == 0) Modifier.focusRequester(requester) else Modifier)
@@ -258,7 +268,7 @@ private fun CategoryCard(category: CategoryUi, requester: FocusRequester?, chann
     ) {
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .78f)))))
         Row(Modifier.align(Alignment.BottomStart).padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
-            category.icon()
+            Icon(category.icon, category.name, tint = White, modifier = Modifier.width(38.dp).height(38.dp))
             Text(category.name, color = White, fontSize = 21.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 14.dp))
         }
     }
@@ -272,7 +282,7 @@ private fun FeaturedChannels(requester: FocusRequester, context: android.content
         LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(18.dp), contentPadding = PaddingValues(end = 32.dp)) {
             itemsIndexed(featured) { index, item ->
                 val repositoryChannel = item.repositoryName?.let { name -> ChannelRepository.channels.firstOrNull { it.name == name } }
-                FeaturedChannelCard(item, if (index == 0) requester else null) {
+                FeaturedChannelCard(item, repositoryChannel?.logoUrl, if (index == 0) requester else null) {
                     repositoryChannel?.streamUrl?.let { url ->
                         context.startActivity(Intent(context, PlayerActivity::class.java).apply {
                             putExtra("streamUrl", url)
@@ -287,13 +297,21 @@ private fun FeaturedChannels(requester: FocusRequester, context: android.content
 }
 
 @Composable
-private fun FeaturedChannelCard(item: FeaturedUi, requester: FocusRequester?, onOpen: () -> Unit) {
+private fun FeaturedChannelCard(item: FeaturedUi, logoUrl: String?, requester: FocusRequester?, onOpen: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     Column((if (requester != null) Modifier.focusRequester(requester) else Modifier).width(265.dp).height(165.dp).scale(if (focused) 1.05f else 1f).onFocusChanged { focused = it.isFocused }.focusable().clickable { onOpen() }) {
         Box(Modifier.fillMaxWidth().height(105.dp).shadow(if (focused) 18.dp else 0.dp, RoundedCornerShape(10.dp)).clip(RoundedCornerShape(10.dp)).background(Brush.linearGradient(listOf(Color(0xFF334155), Color(0xFF101722))))) {
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .55f)))))
+            if (logoUrl != null) {
+                AsyncImage(
+                    model = logoUrl,
+                    contentDescription = item.name,
+                    modifier = Modifier.align(Alignment.Center).width(92.dp).height(62.dp)
+                )
+            } else {
+                Text(item.name, color = White, fontSize = 17.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Center))
+            }
             Text("AO VIVO", color = White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.TopEnd).padding(horizontal = 9.dp, vertical = 5.dp).background(LiveRed, RoundedCornerShape(7.dp)).padding(horizontal = 6.dp, vertical = 2.dp))
-            Text(item.name, color = White, fontSize = 17.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Center))
         }
         Text(item.name, color = White, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 6.dp))
         Text(item.subtitle, color = Muted, fontSize = 13.sp, maxLines = 1)
