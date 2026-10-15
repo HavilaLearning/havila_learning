@@ -7,5 +7,5 @@ data class Channel(
     val description: String,
     val streamUrl: String? = null,
     val isLive: Boolean = false,
-    val logoRes: Int? = null
+    val logoUrl: String? = null
 )
