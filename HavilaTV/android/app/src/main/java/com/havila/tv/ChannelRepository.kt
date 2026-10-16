@@ -50,7 +50,7 @@ object ChannelRepository {
             listOf(PLAYLIST_ZW, PLAYLIST_AFR, PLAYLIST_SSA, PLAYLIST_INT), listOf("Christ TV", "ChristTV")),
         Channel("good-news-tv", "Good News TV", "Gospel", "Televisão cristã internacional", null, false, localLogo("goodnews_tv_logo"),
             listOf(PLAYLIST_AFR, PLAYLIST_SSA, PLAYLIST_INT), listOf("Good News TV", "GoodNews TV")),
-        Channel("good-news-world", "Good News World TV", "Gospel", "Programação baseada na fé", null, false, localLogo("goodnews_tv_logo"),
+        Channel("good-news-world", "Good News World TV", "Gospel", "Programação baseada na fé", null, false, localLogo("goodnews_world_tv_logo"),
             listOf(PLAYLIST_WW, PLAYLIST_AFR, PLAYLIST_INT), listOf("Good News World TV", "Good News World TV Networks", "Good News World")),
         Channel("hope-international-tv", "Hope International TV", "Gospel", "Fé, família, educação e esperança", null, false, localLogo("hope_channel_logo"),
             listOf(PLAYLIST_AFR, PLAYLIST_SSA, PLAYLIST_INT), listOf("Hope International TV", "Hope Channel", "Hope Channel Africa")),
