@@ -25,28 +25,37 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Normalize approved Havila TV icon PNG
+      - name: Repair approved Havila TV icon PNG
         working-directory: .
         run: |
           python3 -m pip install --disable-pip-version-check --quiet Pillow
           python3 - <<'PY'
           from PIL import Image
           from pathlib import Path
+          import shutil
 
-          source = Path('HavilaTV/android/app/src/main/res/drawable-nodpi/havila_tv_icon.png')
-          mirror = Path('HavilaTV/android/app/src/main/res/drawable/havila_tv_icon.png')
+          # The drawable copy is the known-good 64x64 PNG already present in the repository.
+          # The drawable-nodpi copy is the corrupted asset that caused the previous builds to fail.
+          source = Path('HavilaTV/android/app/src/main/res/drawable/havila_tv_icon.png')
+          target = Path('HavilaTV/android/app/src/main/res/drawable-nodpi/havila_tv_icon.png')
 
-          image = Image.open(source).convert('RGBA')
-          image.save(source, format='PNG', optimize=False)
-          image.save(mirror, format='PNG', optimize=False)
-          print(f'Normalized approved icon: {source} -> {image.size} RGBA PNG')
+          with Image.open(source) as image:
+              image.load()
+              normalized = image.convert('RGBA')
+              normalized.save(target, format='PNG', optimize=False)
+              print(f'Repaired approved icon: {source} -> {target}; size={normalized.size}, mode={normalized.mode}')
+
+          # Verify the resulting target can be fully decoded before Gradle starts.
+          with Image.open(target) as check:
+              check.load()
+              print(f'PNG verification OK: {target}; size={check.size}, mode={check.mode}')
           PY
 
           git config user.name 'HavilaLearning'
           git config user.email 'actions@users.noreply.github.com'
-          git add HavilaTV/android/app/src/main/res/drawable-nodpi/havila_tv_icon.png HavilaTV/android/app/src/main/res/drawable/havila_tv_icon.png
+          git add HavilaTV/android/app/src/main/res/drawable-nodpi/havila_tv_icon.png
           if ! git diff --cached --quiet; then
-            git commit -m 'Fix approved Havila TV icon PNG encoding [skip ci]'
+            git commit -m 'Repair approved Havila TV icon PNG [skip ci]'
             git push origin HEAD:havila-tv-stage1
           fi
 
