@@ -74,7 +74,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -91,7 +90,7 @@ private val CardBorder = Color(0xFF273447)
 
 private data class CategoryUi(val name: String, val icon: ImageVector, val art: Brush)
 private data class FeaturedUi(val id: String, val name: String, val subtitle: String, val repositoryName: String? = null)
-private data class HeroSlide(val title: String, val imageUrl: String)
+private data class HeroSlide(val title: String, val imageRes: Int)
 
 private val categories = listOf(
     CategoryUi("Notícias", Icons.Default.Public, Brush.linearGradient(listOf(Color(0xFF0D5AA7), Color(0xFF07182E)))),
@@ -123,17 +122,18 @@ private val featured = listOf(
     FeaturedUi("rtp-africa", "RTP África", "Informação e conteúdos de Portugal e África", "RTP África")
 )
 
-// Fotografias públicas do Wikimedia Commons. O carregamento é feito em rede para manter o APK leve.
-// A ordem foi definida para começar por uma ponte e percorrer património, história e paisagens de Moçambique.
+// Fotografias locais incluídas no APK. Não dependem de sites externos.
+// A troca automática ocorre a cada 4 segundos, com transição suave entre imagens.
 private val heroSlides = listOf(
-    HeroSlide("Ponte Maputo–Catembe", "https://commons.wikimedia.org/wiki/Special:Redirect/file/Maputo-Katembe_Bridge_%2834275941386%29.jpg?width=1600"),
-    HeroSlide("Fortaleza de São Sebastião", "https://commons.wikimedia.org/wiki/Special:Redirect/file/Fortaleza_de_S%C3%A3o_Sebasti%C3%A3o-01.jpg?width=1600"),
-    HeroSlide("Ilha de Moçambique", "https://commons.wikimedia.org/wiki/Special:Redirect/file/Ilha_de_Mocambique.jpg?width=1600"),
-    HeroSlide("Estátua de Samora Machel", "https://commons.wikimedia.org/wiki/Special:Redirect/file/Statue_of_Samora_Machel.jpg?width=1600"),
-    HeroSlide("Estação dos CFM – Maputo", "https://commons.wikimedia.org/wiki/Special:Redirect/file/Maputo_CFC_Station.jpg?width=1600"),
-    HeroSlide("Praça da Independência – Maputo", "https://commons.wikimedia.org/wiki/Special:Redirect/file/Pra%C3%A7a_da_Independ%C3%AAncia%2C_Maputo_2025.jpg?width=1600"),
-    HeroSlide("Arquipélago de Bazaruto", "https://commons.wikimedia.org/wiki/Special:Redirect/file/Bazaruto_Archipelago_National_Park%2C_Mozambique.jpg?width=1600"),
-    HeroSlide("Ponte da Ilha de Moçambique", "https://commons.wikimedia.org/wiki/Special:Redirect/file/Mozambique_Island_Bridge.jpg?width=1600")
+    HeroSlide("Ponte Maputo–Catembe", R.drawable.mozambique_ponte),
+    HeroSlide("Fortaleza de São Sebastião", R.drawable.mozambique_fortaleza),
+    HeroSlide("Ilha de Moçambique", R.drawable.mozambique_ilha),
+    HeroSlide("Estátua de Samora Machel", R.drawable.mozambique_monumento),
+    HeroSlide("Estação dos CFM – Maputo", R.drawable.mozambique_cfm),
+    HeroSlide("Baía de Maputo", R.drawable.mozambique_baia_maputo),
+    HeroSlide("Património de Moçambique", R.drawable.mozambique_heritage01),
+    HeroSlide("História e património de Moçambique", R.drawable.mozambique_heritage02),
+    HeroSlide("Paisagens e património de Moçambique", R.drawable.mozambique_heritage03)
 )
 
 class MainActivity : ComponentActivity() {
@@ -276,8 +276,8 @@ private fun Hero() {
 
     Box(Modifier.fillMaxWidth().height(285.dp).clip(RoundedCornerShape(0.dp, 0.dp, 18.dp, 18.dp))) {
         Crossfade(targetState = slide, animationSpec = tween(durationMillis = 900), label = "hero-background") { activeSlide ->
-            AsyncImage(
-                model = activeSlide.imageUrl,
+            Image(
+                painter = painterResource(activeSlide.imageRes),
                 contentDescription = activeSlide.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
