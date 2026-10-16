@@ -211,8 +211,8 @@ private fun ChannelBrowser(context: Context, menuRequester: FocusRequester) {
     var selectedCategoryIndex by remember { mutableStateOf(0) }
     var selectedSubcategory by remember { mutableStateOf(categoryDefinitions[0].subcategories[0]) }
     val selectedCategory = categoryDefinitions[selectedCategoryIndex]
-    val channels = remember(selectedCategoryIndex, selectedSubcategory) { channelsFor(selectedCategory.name, selectedSubcategory) }
-    val featuredChannels = remember { ChannelRepository.channels.filter { it.id in featuredMozambiqueIds } }
+    val channels = remember(selectedCategory.name, selectedSubcategory) { channelsFor(selectedCategory.name, selectedSubcategory) }
+    val featuredChannels = remember { ChannelRepository.channels.filter { it.id in featuredMozambiqueIds && hasDirectSource(it) } }
     val channelRequester = remember { FocusRequester() }
     Column(Modifier.fillMaxSize().padding(start = 30.dp, top = 12.dp)) {
         Text("CATEGORIAS", color = White, fontSize = 20.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.3.sp); Spacer(Modifier.height(8.dp))
@@ -222,7 +222,11 @@ private fun ChannelBrowser(context: Context, menuRequester: FocusRequester) {
         Spacer(Modifier.height(12.dp)); Text("SUB-CATEGORIAS", color = White, fontSize = 17.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp); Spacer(Modifier.height(7.dp))
         LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(end = 24.dp)) { items(selectedCategory.subcategories) { subcategory -> SubcategoryChip(subcategory, subcategory == selectedSubcategory) { selectedSubcategory = subcategory } } }
         Spacer(Modifier.height(12.dp)); Row(Modifier.fillMaxWidth().padding(end = 24.dp), verticalAlignment = Alignment.CenterVertically) { Text("CANAIS", color = White, fontSize = 20.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.3.sp); Text("  ${selectedCategory.name} / $selectedSubcategory", color = Muted, fontSize = 14.sp) }; Spacer(Modifier.height(7.dp))
-        LazyColumn(Modifier.fillMaxSize().focusGroup(), contentPadding = PaddingValues(bottom = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { itemsIndexed(channels) { index, channel -> ChannelRowCard(channel, if (index == 0) channelRequester else null, context, menuRequester) } }
+        if (channels.isEmpty()) {
+            Box(Modifier.fillMaxWidth().height(82.dp).padding(end = 24.dp).clip(RoundedCornerShape(12.dp)).background(Surface), contentAlignment = Alignment.CenterStart) { Text("Nenhum canal com URL nesta subcategoria.", color = Muted, fontSize = 16.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
+        } else {
+            LazyColumn(Modifier.fillMaxSize().focusGroup(), contentPadding = PaddingValues(bottom = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { itemsIndexed(channels) { index, channel -> ChannelRowCard(channel, if (index == 0) channelRequester else null, context, menuRequester) } }
+        }
     }
 }
 
@@ -246,38 +250,36 @@ private fun SubcategoryChip(name: String, selected: Boolean, onSelect: () -> Uni
 @Composable
 private fun FeaturedChannelCard(channel: Channel, context: Context, menuRequester: FocusRequester) {
     var focused by remember { mutableStateOf(false) }
-    val hasSource = channel.streamUrl?.let(PlaylistResolver::isDirectMediaUrl) == true || channel.playlistUrls.isNotEmpty()
+    val hasSource = hasDirectSource(channel)
     val logoResource = localLogoResource(channel.id)
-    Row(Modifier.width(235.dp).height(76.dp).clip(RoundedCornerShape(12.dp)).background(Surface).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(12.dp)).onFocusChanged { focused = it.isFocused }.focusable().clickable(enabled = hasSource) { context.startActivity(Intent(context, PlayerActivity::class.java).apply { putExtra("channelId", channel.id); putExtra("channelName", channel.name) }) }.focusProperties { left = menuRequester }, verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.width(235.dp).height(76.dp).clip(RoundedCornerShape(12.dp)).background(Surface).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(12.dp)).onFocusChanged { focused = it.isFocused }.focusable().clickable(enabled = hasSource) { openChannel(context, channel) }.focusProperties { left = menuRequester }, verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(88.dp).fillMaxHeight().padding(6.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF151E2C))) { if (logoResource != null) Image(painterResource(logoResource), channel.name, modifier = Modifier.fillMaxSize().padding(7.dp), contentScale = ContentScale.Fit) else Text(channel.name, color = White, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Center)) }
-        Column(Modifier.padding(start = 10.dp).weight(1f)) { Text(channel.name, color = White, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1); Text(if (hasSource) "AO VIVO" else "URL A AGUARDAR", color = if (hasSource) LiveRed else Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp)) }
+        Column(Modifier.padding(start = 10.dp).weight(1f)) { Text(channel.name, color = White, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1); Text("AO VIVO", color = LiveRed, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp)) }
     }
 }
 
 private fun channelsFor(category: String, subcategory: String): List<Channel> = ChannelRepository.channels.filter { channel ->
-    if (channel.category != category) return@filter false
-    when (channel.id) {
-        "tvc", "dw", "rtp-africa", "africanews", "france24", "euronews" -> category == "Notícias" && subcategory == "News"
-        "mntv" -> category == "Notícias" && subcategory == "Business"
-        "tvm" -> category == "Notícias" && subcategory == "Public"
-        "miramar", "mbc-mozambique" -> category == "Notícias" && subcategory == "General"
-        "supersport" -> category == "Desporto" && subcategory == "Sports"
-        "gospel-channel", "emmanuel-tv", "worldlove-tv", "christ-tv", "good-news-tv", "good-news-world", "hope-international-tv", "loveworldsat", "hope-channel-africa", "faith-tv", "tbn", "tv-mana" -> category == "Gospel" && subcategory == "Religious"
-        "reino-infantil" -> category == "Havila Kids" && subcategory == "Kids"
-        "stv", "tv-vitoria" -> category == "Música e Entretenimento" && subcategory == "Entertainment"
-        else -> false
-    }
+    channel.category == category && channel.subcategory == subcategory && hasDirectSource(channel)
+}
+
+private fun hasDirectSource(channel: Channel): Boolean = channel.streamUrl?.let(PlaylistResolver::isDirectMediaUrl) == true
+
+private fun openChannel(context: Context, channel: Channel) {
+    context.startActivity(Intent(context, PlayerActivity::class.java).apply {
+        putExtra("channelId", channel.id)
+        putExtra("channelName", channel.name)
+    })
 }
 
 @Composable
 private fun ChannelRowCard(channel: Channel, requester: FocusRequester?, context: Context, menuRequester: FocusRequester) {
     var focused by remember { mutableStateOf(false) }
-    val hasSource = channel.streamUrl?.let(PlaylistResolver::isDirectMediaUrl) == true || channel.playlistUrls.isNotEmpty()
+    val hasSource = hasDirectSource(channel)
     val logoResource = localLogoResource(channel.id)
-    Row((if (requester != null) Modifier.focusRequester(requester) else Modifier).fillMaxWidth().height(82.dp).padding(end = 24.dp).clip(RoundedCornerShape(12.dp)).background(Surface).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(12.dp)).onFocusChanged { focused = it.isFocused }.focusable().clickable(enabled = hasSource) { context.startActivity(Intent(context, PlayerActivity::class.java).apply { putExtra("channelId", channel.id); putExtra("channelName", channel.name) }) }.focusProperties { if (requester != null) up = requester; left = menuRequester }, verticalAlignment = Alignment.CenterVertically) {
+    Row((if (requester != null) Modifier.focusRequester(requester) else Modifier).fillMaxWidth().height(82.dp).padding(end = 24.dp).clip(RoundedCornerShape(12.dp)).background(Surface).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(12.dp)).onFocusChanged { focused = it.isFocused }.focusable().clickable(enabled = hasSource) { openChannel(context, channel) }.focusProperties { if (requester != null) up = requester; left = menuRequester }, verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(145.dp).fillMaxHeight().padding(7.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF151E2C))) { if (logoResource != null) Image(painterResource(logoResource), channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit) else Text(channel.name, color = White, fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.align(Alignment.Center)) }
         Column(Modifier.padding(start = 16.dp).weight(1f)) { Text(channel.name, color = White, fontSize = 18.sp, fontWeight = FontWeight.Bold); Text(channel.description, color = Muted, fontSize = 13.sp, maxLines = 1, modifier = Modifier.padding(top = 3.dp)) }
-        Text(if (hasSource) "AO VIVO" else "URL A AGUARDAR", color = White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 14.dp).background(if (hasSource) LiveRed else Color(0xFF566170), RoundedCornerShape(7.dp)).padding(horizontal = 9.dp, vertical = 5.dp))
+        Text("AO VIVO", color = White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 14.dp).background(LiveRed, RoundedCornerShape(7.dp)).padding(horizontal = 9.dp, vertical = 5.dp))
     }
 }
 
@@ -287,7 +289,7 @@ private fun localLogoResource(id: String): Int? = when (id) {
     "tvm" -> R.drawable.tvm_logo
     "gospel-channel" -> R.drawable.gospel_channel_logo
     "supersport" -> R.drawable.supersport_logo
-    "dw" -> R.drawable.dw_logo
+    "dw", "dw-english" -> R.drawable.dw_logo
     "emmanuel-tv" -> R.drawable.emanuel_tv_logo
     "christ-tv" -> R.drawable.christ_tv_logo
     "good-news-tv" -> R.drawable.goodnews_tv_logo
