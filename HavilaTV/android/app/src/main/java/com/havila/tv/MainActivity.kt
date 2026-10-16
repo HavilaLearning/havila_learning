@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.BackHandler
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
@@ -98,8 +98,6 @@ private val categoryDefinitions = listOf(
     CategoryDef("Família e Cultura", Icons.Default.Group, listOf("Family", "Culture", "Documentary", "Education", "Science", "Lifestyle", "Cooking", "Travel", "Shop"), Brush.linearGradient(listOf(Color(0xFF8B6A48), Color(0xFF261C15))))
 )
 
-// Fotografias locais incluídas no APK. Não dependem de sites externos.
-// A troca automática ocorre a cada 4 segundos, com transição suave.
 private val heroSlides = listOf(
     HeroSlide("Ponte Maputo–Catembe", R.drawable.mozambique_ponte),
     HeroSlide("Fortaleza de São Sebastião", R.drawable.mozambique_fortaleza),
@@ -157,7 +155,7 @@ private fun HavilaTvHome() {
             onDismissRequest = { showExitDialog = false },
             title = { Text("Sair da Havila TV", fontWeight = FontWeight.Bold) },
             text = { Text("Deseja realmente sair da aplicação?") },
-            confirmButton = { TextButton(onClick = { showExitDialog = false; finish() }) { Text("Sair") } },
+            confirmButton = { TextButton(onClick = { showExitDialog = false; context.finish() }) { Text("Sair") } },
             dismissButton = { TextButton(onClick = { showExitDialog = false }) { Text("Cancelar") } }
         )
     }
@@ -389,12 +387,11 @@ private fun ChannelRowCard(channel: Channel, requester: FocusRequester?, context
             Text(channel.description, color = Muted, fontSize = 13.sp, maxLines = 1, modifier = Modifier.padding(top = 3.dp))
         }
         Text(if (hasSource) "AO VIVO" else "URL A AGUARDAR", color = White, fontSize = 10.sp, fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(end = 14.dp).background(if (hasSource) LiveRed else Color(0xFF566170), RoundedCornerShape(7.dp)).padding(horizontal = 9.dp, vertical = 5.dp))
+            modifier = Modifier.padding(end = 14.dp).background(color = if (hasSource) LiveRed else Color(0xFF566170), shape = RoundedCornerShape(7.dp)).padding(horizontal = 9.dp, vertical = 5.dp))
     }
 }
 
 private fun localLogoResource(id: String): Int? = when (id) {
-    "tvc" -> R.drawable.tvc_logo
     "stv" -> R.drawable.stv_logo
     "miramar" -> R.drawable.miramar_logo
     "tvm" -> R.drawable.tvm_logo
