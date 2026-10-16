@@ -32,10 +32,8 @@ jobs:
           python3 - <<'PY'
           from PIL import Image
           from pathlib import Path
-          import shutil
 
-          # The drawable copy is the known-good 64x64 PNG already present in the repository.
-          # The drawable-nodpi copy is the corrupted asset that caused the previous builds to fail.
+          # Use the valid drawable copy as the source and rebuild the nodpi PNG.
           source = Path('HavilaTV/android/app/src/main/res/drawable/havila_tv_icon.png')
           target = Path('HavilaTV/android/app/src/main/res/drawable-nodpi/havila_tv_icon.png')
 
@@ -45,7 +43,6 @@ jobs:
               normalized.save(target, format='PNG', optimize=False)
               print(f'Repaired approved icon: {source} -> {target}; size={normalized.size}, mode={normalized.mode}')
 
-          # Verify the resulting target can be fully decoded before Gradle starts.
           with Image.open(target) as check:
               check.load()
               print(f'PNG verification OK: {target}; size={check.size}, mode={check.mode}')
