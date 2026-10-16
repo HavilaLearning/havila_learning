@@ -35,31 +35,8 @@ android {
         release { isMinifyEnabled = false }
     }
 
-    sourceSets.getByName("main").res.srcDir(
-        layout.buildDirectory.dir("generated/res/havilaHero/drawable-nodpi")
-    )
-}
-
-val prepareHavilaHeroAssets = tasks.register<Copy>("prepareHavilaHeroAssets") {
-    // app -> android -> HavilaTV -> repository root -> assets
-    from(rootProject.projectDir.resolve("../../assets")) {
-        include(
-            "mozambique_ponte.png",
-            "mozambique_fortaleza.png",
-            "mozambique_ilha.png",
-            "mozambique_monumento.png",
-            "mozambique_cfm.png",
-            "mozambique_baia_maputo.png",
-            "mozambique_heritage01.png",
-            "mozambique_heritage02.png",
-            "mozambique_heritage03.png"
-        )
-    }
-    into(layout.buildDirectory.dir("generated/res/havilaHero/drawable-nodpi"))
-}
-
-tasks.named("preBuild") {
-    dependsOn(prepareHavilaHeroAssets)
+    // Hero images are bundled directly in app/src/main/res/drawable-nodpi.
+    // No external website or generated asset copy is required.
 }
 
 dependencies {
