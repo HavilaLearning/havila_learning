@@ -35,16 +35,13 @@ android {
         release { isMinifyEnabled = false }
     }
 
-    // The Mozambique hero photographs live in the repository-level assets/
-    // directory. Copy only the TV hero set into generated Android resources
-    // so the APK contains the images locally and never depends on an
-    // external website at runtime.
     sourceSets.getByName("main").res.srcDir(
         layout.buildDirectory.dir("generated/res/havilaHero/drawable-nodpi")
     )
 }
 
 val prepareHavilaHeroAssets = tasks.register<Copy>("prepareHavilaHeroAssets") {
+    // app -> android -> HavilaTV -> repository root -> assets
     from(rootProject.projectDir.resolve("../../assets")) {
         include(
             "mozambique_ponte.png",
