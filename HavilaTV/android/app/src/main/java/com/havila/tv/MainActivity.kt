@@ -1,5 +1,6 @@
 package com.havila.tv
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -67,6 +68,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -111,7 +113,7 @@ private val heroSlides = listOf(
 )
 
 private val featuredMozambiqueIds = listOf(
-    "tvm", "miramar", "tvc", "stv", "mbc-mozambique", "gospel-channel", "christ-tv", "good-news-world"
+    "tvm", "miramar", "stv", "mbc-mozambique", "gospel-channel", "christ-tv", "good-news-world"
 )
 
 class MainActivity : ComponentActivity() {
@@ -123,7 +125,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun HavilaTvHome() {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     var selectedMenu by remember { mutableStateOf(0) }
     var showExitDialog by remember { mutableStateOf(false) }
     var clock by remember { mutableStateOf(currentTime()) }
@@ -155,7 +157,7 @@ private fun HavilaTvHome() {
             onDismissRequest = { showExitDialog = false },
             title = { Text("Sair da Havila TV", fontWeight = FontWeight.Bold) },
             text = { Text("Deseja realmente sair da aplicação?") },
-            confirmButton = { TextButton(onClick = { showExitDialog = false; context.finish() }) { Text("Sair") } },
+            confirmButton = { TextButton(onClick = { showExitDialog = false; (context as? Activity)?.finish() }) { Text("Sair") } },
             dismissButton = { TextButton(onClick = { showExitDialog = false }) { Text("Cancelar") } }
         )
     }
