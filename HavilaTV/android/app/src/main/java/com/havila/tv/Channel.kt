@@ -11,5 +11,7 @@ data class Channel(
     /** Public M3U playlist sources used as a fallback when no direct stream is known. */
     val playlistUrls: List<String> = emptyList(),
     /** Alternative names used when matching EXTINF entries in playlists. */
-    val aliases: List<String> = emptyList()
+    val aliases: List<String> = emptyList(),
+    /** Havila TV subcategory used by the category/subcategory/channel navigation. */
+    val subcategory: String = ""
 )
