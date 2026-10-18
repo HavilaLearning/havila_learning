@@ -6,63 +6,31 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.setContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChildCare
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Public
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.SportsSoccer
-import androidx.compose.material.icons.filled.Tv
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -77,42 +45,15 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val Bg = Color(0xFF070B14)
-private val Surface = Color(0xFF0F1624)
-private val White = Color.White
-private val Muted = Color(0xFFA8B0BF)
+private val Bg = Color(0xFF070B12)
+private val Surface = Color(0xFF111923)
+private val CardBorder = Color(0xFF283646)
+private val White = Color(0xFFF5F7FA)
+private val Muted = Color(0xFF9AA8B7)
 private val GoldStart = Color(0xFFF2C14E)
-private val GoldEnd = Color(0xFFC8901E)
-private val FocusGold = Color(0xFFFFC94D)
-private val LiveRed = Color(0xFFE53935)
-private val CardBorder = Color(0xFF273447)
-
-private data class CategoryDef(val name: String, val icon: ImageVector, val subcategories: List<String>, val art: Brush)
-private data class HeroSlide(val title: String, val imageRes: Int)
-
-private val categoryDefinitions = listOf(
-    CategoryDef("Notícias", Icons.Default.Public, listOf("News", "Weather", "Business", "Legislative", "Public", "General"), Brush.linearGradient(listOf(Color(0xFF0D5AA7), Color(0xFF07182E)))),
-    CategoryDef("Desporto", Icons.Default.SportsSoccer, listOf("Sports", "Auto", "Outdoor"), Brush.linearGradient(listOf(Color(0xFF164D72), Color(0xFF071D2D)))),
-    CategoryDef("Gospel", Icons.Default.Favorite, listOf("Religious"), Brush.linearGradient(listOf(Color(0xFF9B4B1A), Color(0xFF22120C)))),
-    CategoryDef("Filmes e Séries", Icons.Default.Movie, listOf("Movies", "Series", "Classic"), Brush.linearGradient(listOf(Color(0xFF8D2118), Color(0xFF210909)))),
-    CategoryDef("Havila Kids", Icons.Default.ChildCare, listOf("Kids", "Animation"), Brush.linearGradient(listOf(Color(0xFF4B9C57), Color(0xFF183B22)))),
-    CategoryDef("Música e Entretenimento", Icons.Default.MusicNote, listOf("Music", "Entertainment", "Comedy", "Interactive", "Relax"), Brush.linearGradient(listOf(Color(0xFF7040A0), Color(0xFF20132F)))),
-    CategoryDef("Família e Cultura", Icons.Default.Group, listOf("Family", "Culture", "Documentary", "Education", "Science", "Lifestyle", "Cooking", "Travel", "Shop"), Brush.linearGradient(listOf(Color(0xFF8B6A48), Color(0xFF261C15))))
-)
-
-private val heroSlides = listOf(
-    HeroSlide("Ponte Maputo–Catembe", R.drawable.mozambique_ponte),
-    HeroSlide("Fortaleza de São Sebastião", R.drawable.mozambique_fortaleza),
-    HeroSlide("Ilha de Moçambique", R.drawable.mozambique_ilha),
-    HeroSlide("Estátua de Samora Machel", R.drawable.mozambique_monumento),
-    HeroSlide("Estação dos CFM – Maputo", R.drawable.mozambique_cfm),
-    HeroSlide("Baía de Maputo", R.drawable.mozambique_baia_maputo),
-    HeroSlide("Património de Moçambique", R.drawable.mozambique_heritage01),
-    HeroSlide("História e património de Moçambique", R.drawable.mozambique_heritage02),
-    HeroSlide("Paisagens e património de Moçambique", R.drawable.mozambique_heritage03)
-)
-
-private val featuredMozambiqueIds = listOf("tvm", "miramar", "stv", "mbc-mozambique", "gospel-channel", "christ-tv", "good-news-world")
+private val GoldEnd = Color(0xFFD99A22)
+private val FocusGold = Color(0xFFFFD76A)
+private val LiveRed = Color(0xFFFF5C5C)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -133,7 +74,6 @@ private fun HavilaTvHome() {
         menuRequester.requestFocus()
         while (true) { clock = currentTime(); kotlinx.coroutines.delay(30_000) }
     }
-
     BackHandler { if (selectedMenu == 0) showExitDialog = true else selectedMenu = 0 }
 
     Box(Modifier.fillMaxSize().background(Bg)) {
@@ -142,11 +82,10 @@ private fun HavilaTvHome() {
             Column(Modifier.fillMaxSize().padding(end = 28.dp)) {
                 TopActions(clock)
                 Hero()
-                ChannelBrowser(context, menuRequester)
+                DashboardContent(context, menuRequester, selectedMenu)
             }
         }
     }
-
     if (showExitDialog) {
         AlertDialog(
             onDismissRequest = { showExitDialog = false },
@@ -207,27 +146,71 @@ private fun Hero() {
 }
 
 @Composable
-private fun ChannelBrowser(context: Context, menuRequester: FocusRequester) {
-    var selectedCategoryIndex by remember { mutableStateOf(0) }
-    var selectedSubcategory by remember { mutableStateOf(categoryDefinitions[0].subcategories[0]) }
-    val selectedCategory = categoryDefinitions[selectedCategoryIndex]
-    val channels = remember(selectedCategory.name, selectedSubcategory) { channelsFor(selectedCategory.name, selectedSubcategory) }
-    val featuredChannels = remember { ChannelRepository.channels.filter { it.id in featuredMozambiqueIds && hasDirectSource(it) } }
-    val channelRequester = remember { FocusRequester() }
+private fun DashboardContent(context: Context, menuRequester: FocusRequester, selectedMenu: Int) {
+    when (selectedMenu) {
+        0 -> HomeContent(context, menuRequester)
+        1 -> ChannelContent(context, menuRequester)
+        2 -> CategoryContent(context, menuRequester)
+        else -> HomeContent(context, menuRequester)
+    }
+}
+
+@Composable
+private fun HomeContent(context: Context, menuRequester: FocusRequester) {
+    val featuredChannels = remember { ChannelRepository.channels.filter { it.id in featuredMozambiqueIds && hasPlayableSource(it) } }
     Column(Modifier.fillMaxSize().padding(start = 30.dp, top = 12.dp)) {
-        Text("CATEGORIAS", color = White, fontSize = 20.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.3.sp); Spacer(Modifier.height(8.dp))
-        LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(end = 24.dp)) { itemsIndexed(categoryDefinitions) { index, category -> CategoryCard(category, index == selectedCategoryIndex, { selectedCategoryIndex = index; selectedSubcategory = category.subcategories.first() }, menuRequester) } }
-        Spacer(Modifier.height(12.dp)); Text("PRINCIPAIS CANAIS DE MOÇAMBIQUE", color = White, fontSize = 20.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.3.sp); Spacer(Modifier.height(7.dp))
-        LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(end = 24.dp)) { items(featuredChannels) { channel -> FeaturedChannelCard(channel, context, menuRequester) } }
-        Spacer(Modifier.height(12.dp)); Text("SUB-CATEGORIAS", color = White, fontSize = 17.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp); Spacer(Modifier.height(7.dp))
-        LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(end = 24.dp)) { items(selectedCategory.subcategories) { subcategory -> SubcategoryChip(subcategory, subcategory == selectedSubcategory) { selectedSubcategory = subcategory } } }
-        Spacer(Modifier.height(12.dp)); Row(Modifier.fillMaxWidth().padding(end = 24.dp), verticalAlignment = Alignment.CenterVertically) { Text("CANAIS", color = White, fontSize = 20.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.3.sp); Text("  ${selectedCategory.name} / $selectedSubcategory", color = Muted, fontSize = 14.sp) }; Spacer(Modifier.height(7.dp))
-        if (channels.isEmpty()) {
-            Box(Modifier.fillMaxWidth().height(82.dp).padding(end = 24.dp).clip(RoundedCornerShape(12.dp)).background(Surface), contentAlignment = Alignment.CenterStart) { Text("Nenhum canal com URL nesta subcategoria.", color = Muted, fontSize = 16.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
-        } else {
-            LazyColumn(Modifier.fillMaxSize().focusGroup(), contentPadding = PaddingValues(bottom = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { itemsIndexed(channels) { index, channel -> ChannelRowCard(channel, if (index == 0) channelRequester else null, context, menuRequester) } }
+        SectionTitle("PRINCIPAIS CANAIS DE MOÇAMBIQUE")
+        LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(end = 24.dp)) {
+            items(featuredChannels) { channel -> FeaturedChannelCard(channel, context, menuRequester) }
+        }
+        Spacer(Modifier.height(18.dp)); SectionTitle("CATEGORIAS")
+        LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(end = 24.dp)) {
+            itemsIndexed(categoryDefinitions) { index, category -> CategoryCard(category, false, { openCategory(context, category.name) }, menuRequester) }
         }
     }
+}
+
+@Composable
+private fun ChannelContent(context: Context, menuRequester: FocusRequester) {
+    val channels = remember { ChannelRepository.channels.filter(::hasPlayableSource) }
+    Column(Modifier.fillMaxSize().padding(start = 30.dp, top = 12.dp)) {
+        SectionTitle("TODOS OS CANAIS")
+        LazyColumn(Modifier.fillMaxSize().focusGroup(), contentPadding = PaddingValues(bottom = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(channels) { channel -> ChannelRowCard(channel, null, context, menuRequester) }
+        }
+    }
+}
+
+@Composable
+private fun CategoryContent(context: Context, menuRequester: FocusRequester) {
+    var selectedCategoryIndex by remember { mutableStateOf(0) }
+    var selectedSubcategory by remember { mutableStateOf(categoryDefinitions[0].subcategories.first()) }
+    val category = categoryDefinitions[selectedCategoryIndex]
+    val channels = remember(category.name, selectedSubcategory) { channelsFor(category.name, selectedSubcategory) }
+    Column(Modifier.fillMaxSize().padding(start = 30.dp, top = 12.dp)) {
+        SectionTitle("CATEGORIAS")
+        LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(end = 24.dp)) {
+            itemsIndexed(categoryDefinitions) { index, item -> CategoryCard(item, index == selectedCategoryIndex, { selectedCategoryIndex = index; selectedSubcategory = item.subcategories.first() }, menuRequester) }
+        }
+        Spacer(Modifier.height(16.dp)); SectionTitle("SUB-CATEGORIAS")
+        LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(end = 24.dp)) {
+            items(category.subcategories) { sub -> SubcategoryChip(sub, sub == selectedSubcategory) { selectedSubcategory = sub } }
+        }
+        Spacer(Modifier.height(16.dp)); Row(verticalAlignment = Alignment.CenterVertically) { SectionTitle("CANAIS"); Text("  ${category.name} / $selectedSubcategory", color = Muted, fontSize = 14.sp) }
+        Spacer(Modifier.height(8.dp))
+        if (channels.isEmpty()) {
+            Box(Modifier.fillMaxWidth().height(82.dp).padding(end = 24.dp).clip(RoundedCornerShape(12.dp)).background(Surface), contentAlignment = Alignment.CenterStart) { Text("Nenhum canal com fonte disponível nesta subcategoria.", color = Muted, fontSize = 16.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
+        } else {
+            LazyColumn(Modifier.fillMaxSize().focusGroup(), contentPadding = PaddingValues(bottom = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { items(channels) { channel -> ChannelRowCard(channel, null, context, menuRequester) } }
+        }
+    }
+}
+
+@Composable
+private fun SectionTitle(text: String) { Text(text, color = White, fontSize = 20.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.3.sp) }
+
+private fun openCategory(context: Context, categoryName: String) {
+    // Home keeps the category cards visible; selecting a category is handled by the Categories menu.
 }
 
 @Composable
@@ -242,59 +225,34 @@ private fun CategoryCard(category: CategoryDef, selected: Boolean, onSelect: () 
 private fun SubcategoryChip(name: String, selected: Boolean, onSelect: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     val chipBackground: Brush = if (selected) Brush.horizontalGradient(listOf(GoldStart, GoldEnd)) else Brush.linearGradient(listOf(Surface, Surface))
-    Box(Modifier.clip(RoundedCornerShape(20.dp)).background(chipBackground).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(20.dp)).onFocusChanged { focused = it.isFocused }.focusable().clickable { onSelect() }.padding(horizontal = 18.dp, vertical = 9.dp)) {
-        Text(name, color = if (selected) Color(0xFF10151C) else White, fontSize = 14.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
-    }
+    Box(Modifier.clip(RoundedCornerShape(20.dp)).background(chipBackground).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(20.dp)).onFocusChanged { focused = it.isFocused }.focusable().clickable { onSelect() }.padding(horizontal = 18.dp, vertical = 9.dp)) { Text(name, color = if (selected) Color(0xFF10151C) else White, fontSize = 14.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium) }
 }
 
 @Composable
 private fun FeaturedChannelCard(channel: Channel, context: Context, menuRequester: FocusRequester) {
     var focused by remember { mutableStateOf(false) }
-    val hasSource = hasDirectSource(channel)
     val logoResource = localLogoResource(channel.id)
-    Row(Modifier.width(235.dp).height(76.dp).clip(RoundedCornerShape(12.dp)).background(Surface).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(12.dp)).onFocusChanged { focused = it.isFocused }.focusable().clickable(enabled = hasSource) { openChannel(context, channel) }.focusProperties { left = menuRequester }, verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.width(235.dp).height(76.dp).clip(RoundedCornerShape(12.dp)).background(Surface).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(12.dp)).onFocusChanged { focused = it.isFocused }.focusable().clickable(enabled = hasPlayableSource(channel)) { openChannel(context, channel) }.focusProperties { left = menuRequester }, verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(88.dp).fillMaxHeight().padding(6.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF151E2C))) { if (logoResource != null) Image(painterResource(logoResource), channel.name, modifier = Modifier.fillMaxSize().padding(7.dp), contentScale = ContentScale.Fit) else Text(channel.name, color = White, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Center)) }
         Column(Modifier.padding(start = 10.dp).weight(1f)) { Text(channel.name, color = White, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1); Text("AO VIVO", color = LiveRed, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp)) }
     }
 }
 
-private fun channelsFor(category: String, subcategory: String): List<Channel> = ChannelRepository.channels.filter { channel ->
-    channel.category == category && channel.subcategory == subcategory && hasDirectSource(channel)
-}
-
-private fun hasDirectSource(channel: Channel): Boolean = channel.streamUrl?.let(PlaylistResolver::isDirectMediaUrl) == true
-
-private fun openChannel(context: Context, channel: Channel) {
-    context.startActivity(Intent(context, PlayerActivity::class.java).apply {
-        putExtra("channelId", channel.id)
-        putExtra("channelName", channel.name)
-    })
-}
-
 @Composable
 private fun ChannelRowCard(channel: Channel, requester: FocusRequester?, context: Context, menuRequester: FocusRequester) {
     var focused by remember { mutableStateOf(false) }
-    val hasSource = hasDirectSource(channel)
     val logoResource = localLogoResource(channel.id)
-    Row((if (requester != null) Modifier.focusRequester(requester) else Modifier).fillMaxWidth().height(82.dp).padding(end = 24.dp).clip(RoundedCornerShape(12.dp)).background(Surface).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(12.dp)).onFocusChanged { focused = it.isFocused }.focusable().clickable(enabled = hasSource) { openChannel(context, channel) }.focusProperties { if (requester != null) up = requester; left = menuRequester }, verticalAlignment = Alignment.CenterVertically) {
+    Row((if (requester != null) Modifier.focusRequester(requester) else Modifier).fillMaxWidth().height(82.dp).padding(end = 24.dp).clip(RoundedCornerShape(12.dp)).background(Surface).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(12.dp)).onFocusChanged { focused = it.isFocused }.focusable().clickable(enabled = hasPlayableSource(channel)) { openChannel(context, channel) }.focusProperties { if (requester != null) up = requester; left = menuRequester }, verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(145.dp).fillMaxHeight().padding(7.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF151E2C))) { if (logoResource != null) Image(painterResource(logoResource), channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit) else Text(channel.name, color = White, fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.align(Alignment.Center)) }
         Column(Modifier.padding(start = 16.dp).weight(1f)) { Text(channel.name, color = White, fontSize = 18.sp, fontWeight = FontWeight.Bold); Text(channel.description, color = Muted, fontSize = 13.sp, maxLines = 1, modifier = Modifier.padding(top = 3.dp)) }
-        Text("AO VIVO", color = White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 14.dp).background(LiveRed, RoundedCornerShape(7.dp)).padding(horizontal = 9.dp, vertical = 5.dp))
+        Text("AO VIVO", color = White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 22.dp))
     }
 }
 
-private fun localLogoResource(id: String): Int? = when (id) {
-    "stv" -> R.drawable.stv_logo
-    "miramar" -> R.drawable.miramar_logo
-    "tvm" -> R.drawable.tvm_logo
-    "gospel-channel" -> R.drawable.gospel_channel_logo
-    "supersport" -> R.drawable.supersport_logo
-    "dw", "dw-english" -> R.drawable.dw_logo
-    "emmanuel-tv" -> R.drawable.emanuel_tv_logo
-    "christ-tv" -> R.drawable.christ_tv_logo
-    "good-news-tv" -> R.drawable.goodnews_tv_logo
-    "hope-international-tv", "hope-channel-africa" -> R.drawable.hope_channel_logo
-    "loveworldsat", "worldlove-tv" -> R.drawable.loveworld_sat_logo
-    "good-news-world" -> R.drawable.goodnews_world_tv_logo
-    else -> null
+private fun channelsFor(category: String, subcategory: String): List<Channel> = ChannelRepository.channels.filter { it.category == category && it.subcategory == subcategory && hasPlayableSource(it) }
+
+private fun hasPlayableSource(channel: Channel): Boolean = channel.streamUrl?.let(PlaylistResolver::isDirectMediaUrl) == true || channel.playlistUrls.isNotEmpty()
+
+private fun openChannel(context: Context, channel: Channel) {
+    context.startActivity(Intent(context, PlayerActivity::class.java).apply { putExtra("channelId", channel.id); putExtra("channelName", channel.name) })
 }
