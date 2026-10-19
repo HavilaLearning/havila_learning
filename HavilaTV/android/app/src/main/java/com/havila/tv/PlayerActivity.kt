@@ -32,7 +32,6 @@ class PlayerActivity : ComponentActivity() {
     private val playerScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var playbackFailed = false
     private var changingChannel = false
-    private var currentChannelName = "Canal"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,7 +58,7 @@ class PlayerActivity : ComponentActivity() {
                 channelIndex = index
                 resolveAndPlay(liveChannels[index])
             }
-            !initialUrl.isNullOrBlank() && isSafeMediaUrl(initialUrl) -> {
+            !initialUrl.isNullOrBlank() && PlaylistResolver.isDirectMediaUrl(initialUrl) -> {
                 channelIndex = -1
                 resolveJob?.cancel()
                 buildPlayer(initialUrl, initialName)
@@ -74,7 +73,6 @@ class PlayerActivity : ComponentActivity() {
 
     private fun resolveAndPlay(channel: Channel) {
         if (isFinishing || isDestroyed) return
-        currentChannelName = channel.name
         playbackFailed = false
         changingChannel = true
         showLoading(channel.name)
@@ -83,7 +81,7 @@ class PlayerActivity : ComponentActivity() {
             try {
                 val direct = PlaylistResolver.resolve(channel)
                 if (isFinishing || isDestroyed) return@launch
-                if (direct != null && isSafeMediaUrl(direct)) {
+                if (direct != null && PlaylistResolver.isDirectMediaUrl(direct)) {
                     buildPlayer(direct, channel.name)
                 } else {
                     showUnavailable(channel.name, "Não foi encontrada uma transmissão disponível para este canal.")
@@ -97,14 +95,13 @@ class PlayerActivity : ComponentActivity() {
     }
 
     private fun buildPlayer(url: String, name: String) {
-        if (!isSafeMediaUrl(url) || isFinishing || isDestroyed) {
+        if (!PlaylistResolver.isDirectMediaUrl(url) || isFinishing || isDestroyed) {
             showUnavailable(name, "O endereço da transmissão não é válido.")
             return
         }
         try {
             playbackFailed = false
             releasePlayerOnly()
-
             val newPlayer = ExoPlayer.Builder(this).build()
             newPlayer.addListener(object : Player.Listener {
                 override fun onPlaybackStateChanged(playbackState: Int) {
@@ -134,7 +131,6 @@ class PlayerActivity : ComponentActivity() {
                 setPadding(20, 10, 20, 10)
             }
             root.addView(info, FrameLayout.LayoutParams(-2, -2).apply { leftMargin = 28; topMargin = 28 })
-
             player = newPlayer
             playerView = newPlayerView
             setContentView(root)
@@ -180,16 +176,6 @@ class PlayerActivity : ComponentActivity() {
         setContentView(root)
         enterImmersiveTvMode()
     }
-
-    private fun isSafeMediaUrl(url: String): Boolean = try {
-        val uri = Uri.parse(url.trim())
-        val scheme = uri.scheme?.lowercase()
-        val path = uri.path?.lowercase().orEmpty()
-        val clean = url.substringBefore('?').lowercase()
-        (scheme == "http" || scheme == "https") && uri.host != null &&
-            (path.endsWith(".m3u8") || path.endsWith(".mpd") || path.endsWith(".mp4") || path.endsWith(".ts") ||
-             clean.endsWith(".m3u8") || clean.endsWith(".mpd"))
-    } catch (_: Throwable) { false }
 
     private fun releasePlayerOnly() {
         player?.release()
