@@ -32,13 +32,12 @@ class PlayerActivity : ComponentActivity() {
     private val playerScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var playbackFailed = false
     private var changingChannel = false
+    private var currentChannelName = "Canal"
+    private var currentStreamUrl: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enterImmersiveTvMode()
-        // Use the same playable catalog used by the channel screen. Previously this
-        // list was filtered only by isLive, which could make a selected catalog item
-        // impossible to find after MainActivity sent its channelId.
         liveChannels = ChannelRepository.channels.filter(::hasPlayableSource)
         openRequestedChannel(intent)
     }
@@ -63,6 +62,8 @@ class PlayerActivity : ComponentActivity() {
             }
             !initialUrl.isNullOrBlank() && PlaylistResolver.isDirectMediaUrl(initialUrl) -> {
                 channelIndex = -1
+                currentChannelName = initialName
+                currentStreamUrl = initialUrl
                 resolveJob?.cancel()
                 buildPlayer(initialUrl, initialName)
             }
@@ -78,6 +79,8 @@ class PlayerActivity : ComponentActivity() {
         if (isFinishing || isDestroyed) return
         playbackFailed = false
         changingChannel = true
+        currentChannelName = channel.name
+        currentStreamUrl = null
         showLoading(channel.name)
         resolveJob?.cancel()
         resolveJob = playerScope.launch {
@@ -85,6 +88,7 @@ class PlayerActivity : ComponentActivity() {
                 val direct = PlaylistResolver.resolve(channel)
                 if (isFinishing || isDestroyed) return@launch
                 if (direct != null && PlaylistResolver.isDirectMediaUrl(direct)) {
+                    currentStreamUrl = direct
                     buildPlayer(direct, channel.name)
                 } else {
                     showUnavailable(channel.name, "Não foi encontrada uma transmissão disponível para este canal.")
@@ -98,12 +102,14 @@ class PlayerActivity : ComponentActivity() {
     }
 
     private fun buildPlayer(url: String, name: String) {
-        if (!PlaylistResolver.isDirectMediaUrl(url) || isFinishing || isDestroyed) {
+        val safeUrl = url.trim()
+        if (!PlaylistResolver.isDirectMediaUrl(safeUrl) || isFinishing || isDestroyed) {
             showUnavailable(name, "O endereço da transmissão não é válido.")
             return
         }
         try {
             playbackFailed = false
+            changingChannel = false
             releasePlayerOnly()
             val newPlayer = ExoPlayer.Builder(this).build()
             newPlayer.addListener(object : Player.Listener {
@@ -114,7 +120,7 @@ class PlayerActivity : ComponentActivity() {
                     if (!isFinishing && !isDestroyed) showPlaybackError(name)
                 }
             })
-            newPlayer.setMediaItem(MediaItem.fromUri(Uri.parse(url)))
+            newPlayer.setMediaItem(MediaItem.fromUri(Uri.parse(safeUrl)))
             newPlayer.playWhenReady = true
 
             val newPlayerView = PlayerView(this).apply {
@@ -122,6 +128,7 @@ class PlayerActivity : ComponentActivity() {
                 keepScreenOn = true
                 setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
                 isFocusable = false
+                resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
                 player = newPlayer
             }
             val root = FrameLayout(this).apply { setBackgroundColor(Color.BLACK) }
