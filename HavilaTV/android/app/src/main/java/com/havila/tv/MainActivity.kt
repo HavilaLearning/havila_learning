@@ -128,7 +128,6 @@ private fun HavilaTvHome() {
 
 private fun currentTime(): String = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
 
-/** One deterministic action for Android TV remote OK/ENTER. */
 private fun Modifier.tvAction(onSelect: () -> Unit): Modifier = this
     .focusable()
     .onKeyEvent { event ->
@@ -292,6 +291,7 @@ private fun openChannel(context: Context, channel: Channel) {
         addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
         putExtra("channelId", channel.id)
         putExtra("channelName", channel.name)
+        channel.streamUrl?.trim()?.takeIf { it.isNotEmpty() }?.let { putExtra("streamUrl", it) }
     }
     context.startActivity(intent)
 }
