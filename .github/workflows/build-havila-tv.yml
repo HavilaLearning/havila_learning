@@ -41,6 +41,24 @@ jobs:
           unzip -q /tmp/gradle.zip -d /tmp
           echo "/tmp/gradle-8.13/bin" >> "$GITHUB_PATH"
 
+      - name: Normalize catalog Kotlin URL literals
+        working-directory: .
+        run: |
+          set -euo pipefail
+          file="HavilaTV/android/app/src/main/java/com/havila/tv/ChannelRepository.kt"
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("HavilaTV/android/app/src/main/java/com/havila/tv/ChannelRepository.kt")
+          s = p.read_text()
+          old = 'LIVE$BFM_BUSINESS/index.m3u8?end=END&start=LIVE'
+          new = 'LIVE\\$BFM_BUSINESS/index.m3u8?end=END&start=LIVE'
+          if old in s:
+              p.write_text(s.replace(old, new, 1))
+              print("Normalized BFM Business Kotlin URL literal.")
+          else:
+              print("BFM Business URL already normalized; no change needed.")
+          PY
+
       - name: Build signed debug APK for TV testing
         run: gradle --no-daemon assembleDebug --stacktrace
 
