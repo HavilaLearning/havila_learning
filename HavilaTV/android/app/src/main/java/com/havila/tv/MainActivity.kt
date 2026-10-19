@@ -8,7 +8,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,6 +40,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -58,6 +60,12 @@ private val LiveRed = Color(0xFFFF5C5C)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Havila TV is a true fullscreen TV experience. Keep the Compose surface
+        // edge-to-edge and hide system bars so the dashboard owns the whole display.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
+
         setContent { HavilaTvHome() }
     }
 }
@@ -76,16 +84,41 @@ private fun HavilaTvHome() {
     }
     BackHandler { if (selectedMenu == 0) showExitDialog = true else selectedMenu = 0 }
 
-    Box(Modifier.fillMaxSize().background(Bg)) {
+    // The previous version mixed fixed widths/heights with fillMaxSize inside
+    // the same Column. That could make the content exceed the available TV
+    // window and leave visible misalignment on different UI resolutions.
+    // Here every major region is constrained by the actual display size.
+    BoxWithConstraints(Modifier.fillMaxSize().background(Bg)) {
+        val sidebarWidth = (maxWidth * 0.17f).coerceIn(230.dp, 300.dp)
+        val contentPadding = (maxWidth * 0.025f).coerceIn(20.dp, 40.dp)
+        val topBarHeight = (maxHeight * 0.085f).coerceIn(54.dp, 72.dp)
+        val heroHeight = (maxHeight * 0.30f).coerceIn(190.dp, 270.dp)
+
         Row(Modifier.fillMaxSize()) {
-            SideBar(selectedMenu, menuRequester) { selectedMenu = it }
-            Column(Modifier.fillMaxSize().padding(end = 28.dp)) {
-                TopActions(clock)
-                Hero()
-                DashboardContent(context, menuRequester, selectedMenu)
+            SideBar(
+                selected = selectedMenu,
+                requester = menuRequester,
+                onSelected = { selectedMenu = it },
+                width = sidebarWidth
+            )
+
+            Column(Modifier.weight(1f).fillMaxHeight()) {
+                TopActions(clock, topBarHeight, contentPadding)
+                Hero(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(heroHeight),
+                    horizontalPadding = contentPadding
+                )
+                // This Box is deliberately weighted. DashboardContent must be
+                // measured only in the space left after the top bar and hero.
+                Box(Modifier.weight(1f).fillMaxWidth()) {
+                    DashboardContent(context, menuRequester, selectedMenu)
+                }
             }
         }
     }
+
     if (showExitDialog) {
         AlertDialog(
             onDismissRequest = { showExitDialog = false },
@@ -100,10 +133,32 @@ private fun HavilaTvHome() {
 private fun currentTime(): String = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
 
 @Composable
-private fun SideBar(selected: Int, requester: FocusRequester, onSelected: (Int) -> Unit) {
-    val items = listOf(Icons.Default.Home to "Início", Icons.Default.Tv to "Canais", Icons.Default.GridView to "Categorias", Icons.Default.FavoriteBorder to "Favoritos", Icons.Default.Settings to "Configurações")
-    Column(Modifier.width(290.dp).fillMaxHeight().background(Color(0xFF050B14)).border(1.dp, Color(0xFF1E2A39)), horizontalAlignment = Alignment.CenterHorizontally) {
-        Logo(); Spacer(Modifier.height(28.dp)); items.forEachIndexed { index, item -> MenuItem(index, item.first, item.second, selected == index, requester, onSelected) }
+private fun SideBar(
+    selected: Int,
+    requester: FocusRequester,
+    onSelected: (Int) -> Unit,
+    width: androidx.compose.ui.unit.Dp
+) {
+    val items = listOf(
+        Icons.Default.Home to "Início",
+        Icons.Default.Tv to "Canais",
+        Icons.Default.GridView to "Categorias",
+        Icons.Default.FavoriteBorder to "Favoritos",
+        Icons.Default.Settings to "Configurações"
+    )
+    Column(
+        Modifier
+            .width(width)
+            .fillMaxHeight()
+            .background(Color(0xFF050B14))
+            .border(1.dp, Color(0xFF1E2A39)),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Logo()
+        Spacer(Modifier.height(28.dp))
+        items.forEachIndexed { index, item ->
+            MenuItem(index, item.first, item.second, selected == index, requester, onSelected)
+        }
     }
 }
 
@@ -111,7 +166,8 @@ private fun SideBar(selected: Int, requester: FocusRequester, onSelected: (Int) 
 private fun MenuItem(index: Int, icon: ImageVector, label: String, active: Boolean, requester: FocusRequester, onSelected: (Int) -> Unit) {
     var focused by remember { mutableStateOf(false) }
     Row(Modifier.then(if (index == 0) Modifier.focusRequester(requester) else Modifier).fillMaxWidth().height(72.dp).padding(horizontal = 10.dp, vertical = 4.dp).clip(RoundedCornerShape(0.dp, 18.dp, 18.dp, 0.dp)).background(if (active) Brush.horizontalGradient(listOf(GoldStart, GoldEnd)) else Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))).onFocusChanged { focused = it.isFocused }.border(if (focused) 2.dp else 0.dp, if (focused) FocusGold else Color.Transparent, RoundedCornerShape(18.dp)).focusable().clickable { onSelected(index) }, verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, label, tint = if (active) Color(0xFF10151C) else White.copy(alpha = .82f), modifier = Modifier.padding(start = 28.dp).width(30.dp)); Text(label, color = if (active) Color(0xFF10151C) else White.copy(alpha = .9f), fontSize = 18.sp, fontWeight = if (active) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.padding(start = 18.dp))
+        Icon(icon, label, tint = if (active) Color(0xFF10151C) else White.copy(alpha = .82f), modifier = Modifier.padding(start = 28.dp).width(30.dp))
+        Text(label, color = if (active) Color(0xFF10151C) else White.copy(alpha = .9f), fontSize = 18.sp, fontWeight = if (active) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.padding(start = 18.dp))
     }
 }
 
@@ -124,24 +180,38 @@ private fun Logo() {
 }
 
 @Composable
-private fun TopActions(time: String) {
-    Row(Modifier.fillMaxWidth().height(66.dp).padding(horizontal = 10.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Default.Search, "Pesquisar", tint = White, modifier = Modifier.width(26.dp)); Text("Pesquisar", color = White, fontSize = 17.sp, modifier = Modifier.padding(start = 8.dp, end = 38.dp)); Icon(Icons.Default.Settings, "Configurações", tint = White, modifier = Modifier.width(27.dp)); Text("Configurações", color = White, fontSize = 17.sp, modifier = Modifier.padding(start = 8.dp, end = 42.dp)); Text(time, color = White, fontSize = 19.sp)
+private fun TopActions(time: String, height: androidx.compose.ui.unit.Dp, horizontalPadding: androidx.compose.ui.unit.Dp) {
+    Row(Modifier.fillMaxWidth().height(height).padding(horizontal = horizontalPadding), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Default.Search, "Pesquisar", tint = White, modifier = Modifier.width(26.dp))
+        Text("Pesquisar", color = White, fontSize = 17.sp, modifier = Modifier.padding(start = 8.dp, end = 38.dp))
+        Icon(Icons.Default.Settings, "Configurações", tint = White, modifier = Modifier.width(27.dp))
+        Text("Configurações", color = White, fontSize = 17.sp, modifier = Modifier.padding(start = 8.dp, end = 42.dp))
+        Text(time, color = White, fontSize = 19.sp)
     }
 }
 
 @Composable
-private fun Hero() {
+private fun Hero(modifier: Modifier = Modifier, horizontalPadding: androidx.compose.ui.unit.Dp) {
     var currentIndex by remember { mutableStateOf(0) }
     LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(4_000); currentIndex = (currentIndex + 1) % heroSlides.size } }
     val slide = heroSlides[currentIndex]
-    Box(Modifier.fillMaxWidth().height(235.dp).clip(RoundedCornerShape(0.dp, 0.dp, 18.dp, 18.dp))) {
-        Crossfade(targetState = slide, animationSpec = tween(900), label = "hero-background") { activeSlide -> Image(painterResource(activeSlide.imageRes), activeSlide.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
+    Box(modifier.clip(RoundedCornerShape(0.dp, 0.dp, 18.dp, 18.dp))) {
+        Crossfade(targetState = slide, animationSpec = tween(900), label = "hero-background") { activeSlide ->
+            Image(painterResource(activeSlide.imageRes), activeSlide.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        }
         Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Bg.copy(alpha = .98f), Bg.copy(alpha = .78f), Bg.copy(alpha = .30f), Color.Transparent))))
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent, Bg.copy(alpha = .48f)))))
-        Column(Modifier.padding(start = 42.dp, top = 30.dp)) { Text("Bem-vindo à Havila TV", color = White, fontSize = 46.sp, fontWeight = FontWeight.ExtraBold); Text("Televisão digital para toda a família", color = Muted, fontSize = 25.sp, modifier = Modifier.padding(top = 2.dp)); Text("NOTÍCIAS • EDUCAÇÃO • FÉ • CULTURA • DESPORTO • ENTRETENIMENTO", color = White.copy(alpha = .88f), fontSize = 12.sp, letterSpacing = 1.5.sp, modifier = Modifier.padding(top = 15.dp)) }
-        Text(slide.title, color = White.copy(alpha = .82f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.BottomStart).padding(start = 42.dp, bottom = 12.dp))
-        Row(Modifier.align(Alignment.BottomEnd).padding(end = 28.dp, bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) { heroSlides.forEachIndexed { index, _ -> Box(Modifier.width(if (index == currentIndex) 22.dp else 7.dp).height(7.dp).clip(RoundedCornerShape(50)).background(if (index == currentIndex) FocusGold else White.copy(alpha = .45f))) } }
+        Column(Modifier.padding(start = horizontalPadding, top = 30.dp)) {
+            Text("Bem-vindo à Havila TV", color = White, fontSize = 46.sp, fontWeight = FontWeight.ExtraBold)
+            Text("Televisão digital para toda a família", color = Muted, fontSize = 25.sp, modifier = Modifier.padding(top = 2.dp))
+            Text("NOTÍCIAS • EDUCAÇÃO • FÉ • CULTURA • DESPORTO • ENTRETENIMENTO", color = White.copy(alpha = .88f), fontSize = 12.sp, letterSpacing = 1.5.sp, modifier = Modifier.padding(top = 15.dp))
+        }
+        Text(slide.title, color = White.copy(alpha = .82f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.BottomStart).padding(start = horizontalPadding, bottom = 12.dp))
+        Row(Modifier.align(Alignment.BottomEnd).padding(end = horizontalPadding, bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            heroSlides.forEachIndexed { index, _ ->
+                Box(Modifier.width(if (index == currentIndex) 22.dp else 7.dp).height(7.dp).clip(RoundedCornerShape(50)).background(if (index == currentIndex) FocusGold else White.copy(alpha = .45f)))
+            }
+        }
     }
 }
 
@@ -233,8 +303,14 @@ private fun FeaturedChannelCard(channel: Channel, context: Context, menuRequeste
     var focused by remember { mutableStateOf(false) }
     val logoResource = localLogoResource(channel.id)
     Row(Modifier.width(235.dp).height(76.dp).clip(RoundedCornerShape(12.dp)).background(Surface).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(12.dp)).onFocusChanged { focused = it.isFocused }.focusable().clickable(enabled = hasPlayableSource(channel)) { openChannel(context, channel) }.focusProperties { left = menuRequester }, verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.width(88.dp).fillMaxHeight().padding(6.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF151E2C))) { if (logoResource != null) Image(painterResource(logoResource), channel.name, modifier = Modifier.fillMaxSize().padding(7.dp), contentScale = ContentScale.Fit) else Text(channel.name, color = White, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Center)) }
-        Column(Modifier.padding(start = 10.dp).weight(1f)) { Text(channel.name, color = White, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1); Text("AO VIVO", color = LiveRed, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp)) }
+        Box(Modifier.width(88.dp).fillMaxHeight().padding(6.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF151E2C))) {
+            if (logoResource != null) Image(painterResource(logoResource), channel.name, modifier = Modifier.fillMaxSize().padding(7.dp), contentScale = ContentScale.Fit)
+            else Text(channel.name, color = White, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Center))
+        }
+        Column(Modifier.padding(start = 10.dp).weight(1f)) {
+            Text(channel.name, color = White, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text("AO VIVO", color = LiveRed, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))
+        }
     }
 }
 
@@ -243,8 +319,14 @@ private fun ChannelRowCard(channel: Channel, requester: FocusRequester?, context
     var focused by remember { mutableStateOf(false) }
     val logoResource = localLogoResource(channel.id)
     Row((if (requester != null) Modifier.focusRequester(requester) else Modifier).fillMaxWidth().height(82.dp).padding(end = 24.dp).clip(RoundedCornerShape(12.dp)).background(Surface).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(12.dp)).onFocusChanged { focused = it.isFocused }.focusable().clickable(enabled = hasPlayableSource(channel)) { openChannel(context, channel) }.focusProperties { if (requester != null) up = requester; left = menuRequester }, verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.width(145.dp).fillMaxHeight().padding(7.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF151E2C))) { if (logoResource != null) Image(painterResource(logoResource), channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit) else Text(channel.name, color = White, fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.align(Alignment.Center)) }
-        Column(Modifier.padding(start = 16.dp).weight(1f)) { Text(channel.name, color = White, fontSize = 18.sp, fontWeight = FontWeight.Bold); Text(channel.description, color = Muted, fontSize = 13.sp, maxLines = 1, modifier = Modifier.padding(top = 3.dp)) }
+        Box(Modifier.width(145.dp).fillMaxHeight().padding(7.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF151E2C))) {
+            if (logoResource != null) Image(painterResource(logoResource), channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit)
+            else Text(channel.name, color = White, fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.align(Alignment.Center))
+        }
+        Column(Modifier.padding(start = 16.dp).weight(1f)) {
+            Text(channel.name, color = White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(channel.description, color = Muted, fontSize = 13.sp, maxLines = 1, modifier = Modifier.padding(top = 3.dp))
+        }
         Text("AO VIVO", color = White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 22.dp))
     }
 }
