@@ -22,7 +22,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
-/** Full-screen TV player. A bad/offline stream must never close the application. */
+/** Full-screen TV player. Stream errors are contained and never close the application. */
 class PlayerActivity : ComponentActivity() {
     private var player: ExoPlayer? = null
     private var playerView: PlayerView? = null
@@ -36,7 +36,10 @@ class PlayerActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enterImmersiveTvMode()
-        liveChannels = ChannelRepository.channels.filter { it.isLive }
+        // Use the same playable catalog used by the channel screen. Previously this
+        // list was filtered only by isLive, which could make a selected catalog item
+        // impossible to find after MainActivity sent its channelId.
+        liveChannels = ChannelRepository.channels.filter(::hasPlayableSource)
         openRequestedChannel(intent)
     }
 
@@ -48,9 +51,9 @@ class PlayerActivity : ComponentActivity() {
     }
 
     private fun openRequestedChannel(request: Intent) {
-        val channelId = request.getStringExtra("channelId")
-        val initialUrl = request.getStringExtra("streamUrl")
-        val initialName = request.getStringExtra("channelName") ?: "Canal"
+        val channelId = request.getStringExtra("channelId")?.trim()
+        val initialUrl = request.getStringExtra("streamUrl")?.trim()
+        val initialName = request.getStringExtra("channelName")?.trim().takeUnless { it.isNullOrBlank() } ?: "Canal"
         val index = channelId?.let { id -> liveChannels.indexOfFirst { it.id == id } } ?: -1
 
         when {
@@ -216,6 +219,9 @@ class PlayerActivity : ComponentActivity() {
         channelIndex = next
         resolveAndPlay(liveChannels[next])
     }
+
+    private fun hasPlayableSource(channel: Channel): Boolean =
+        channel.streamUrl?.let(PlaylistResolver::isDirectMediaUrl) == true || channel.playlistUrls.isNotEmpty()
 
     override fun onStop() {
         super.onStop()
