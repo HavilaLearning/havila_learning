@@ -10,10 +10,16 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.ComponentActivity
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.MimeTypes
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.hls.HlsMediaSource
+import androidx.media3.exoplayer.dash.DashMediaSource
+import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -111,6 +117,17 @@ class PlayerActivity : ComponentActivity() {
             playbackFailed = false
             changingChannel = false
             releasePlayerOnly()
+            val dataSourceFactory = DefaultHttpDataSource.Factory()
+                .setConnectTimeoutMs(12_000)
+                .setReadTimeoutMs(20_000)
+                .setUserAgent("HavilaTV/1.0 AndroidTV")
+            val uri = Uri.parse(safeUrl)
+            val mediaItem = MediaItem.Builder().setUri(uri).apply {
+                when (detectMimeType(safeUrl)) {
+                    MimeTypes.APPLICATION_M3U8 -> setMimeType(MimeTypes.APPLICATION_M3U8)
+                    MimeTypes.APPLICATION_MPD -> setMimeType(MimeTypes.APPLICATION_MPD)
+                }
+            }.build()
             val newPlayer = ExoPlayer.Builder(this).build()
             newPlayer.addListener(object : Player.Listener {
                 override fun onPlaybackStateChanged(playbackState: Int) {
@@ -120,7 +137,7 @@ class PlayerActivity : ComponentActivity() {
                     if (!isFinishing && !isDestroyed) showPlaybackError(name)
                 }
             })
-            newPlayer.setMediaItem(MediaItem.fromUri(Uri.parse(safeUrl)))
+            newPlayer.setMediaSource(createMediaSource(mediaItem, dataSourceFactory))
             newPlayer.playWhenReady = true
 
             val newPlayerView = PlayerView(this).apply {
@@ -149,6 +166,23 @@ class PlayerActivity : ComponentActivity() {
         } catch (_: Throwable) {
             releasePlayerOnly()
             if (!isFinishing && !isDestroyed) showPlaybackError(name)
+        }
+    }
+
+    private fun detectMimeType(url: String): String? {
+        val clean = url.lowercase().substringBefore('?').substringBefore('#')
+        return when {
+            clean.endsWith(".m3u8") -> MimeTypes.APPLICATION_M3U8
+            clean.endsWith(".mpd") -> MimeTypes.APPLICATION_MPD
+            else -> null
+        }
+    }
+
+    private fun createMediaSource(item: MediaItem, factory: DefaultHttpDataSource.Factory): MediaSource {
+        return when (item.mimeType) {
+            MimeTypes.APPLICATION_M3U8 -> HlsMediaSource.Factory(factory).createMediaSource(item)
+            MimeTypes.APPLICATION_MPD -> DashMediaSource.Factory(factory).createMediaSource(item)
+            else -> androidx.media3.exoplayer.source.DefaultMediaSourceFactory(factory).createMediaSource(item)
         }
     }
 
