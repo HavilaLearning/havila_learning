@@ -17,7 +17,6 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Tv
 
-/** Compatibility extensions used by MainActivity. */
 fun ComponentActivity.setContent(content: @Composable () -> Unit) {
     activitySetContent { content() }
 }
@@ -45,59 +44,25 @@ val heroSlides = listOf(
     HeroSlide("Património de Moçambique", R.drawable.mozambique_heritage03)
 )
 
-private fun categoryArt(start: Color, end: Color): Brush =
-    Brush.linearGradient(listOf(start, end))
+private fun categoryArt(start: Color, end: Color): Brush = Brush.linearGradient(listOf(start, end))
 
 val categoryDefinitions = listOf(
-    CategoryDef(
-        "Notícias",
-        listOf("News", "Weather", "Business", "Legislative", "Public", "General"),
-        Icons.Default.Tv,
-        categoryArt(Color(0xFF17324D), Color(0xFF245D79))
-    ),
-    CategoryDef(
-        "Desporto",
-        listOf("Sports", "Auto", "Outdoor"),
-        Icons.Default.Tv,
-        categoryArt(Color(0xFF183E2B), Color(0xFF28704A))
-    ),
-    CategoryDef(
-        "Gospel",
-        listOf("Religious"),
-        Icons.Default.Home,
-        categoryArt(Color(0xFF382A58), Color(0xFF60448A))
-    ),
-    CategoryDef(
-        "Filmes e Séries",
-        listOf("Movies", "Series", "Classic"),
-        Icons.Default.Movie,
-        categoryArt(Color(0xFF47262B), Color(0xFF803B43))
-    ),
-    CategoryDef(
-        "Havila Kids",
-        listOf("Kids", "Animation"),
-        Icons.Default.School,
-        categoryArt(Color(0xFF5A4218), Color(0xFF92702A))
-    ),
-    CategoryDef(
-        "Música e Entretenimento",
-        listOf("Music", "Entertainment", "Comedy", "Interactive", "Relax"),
-        Icons.Default.MusicNote,
-        categoryArt(Color(0xFF183C49), Color(0xFF2B7181))
-    ),
-    CategoryDef(
-        "Família e Cultura",
-        listOf("Family", "Culture", "Documentary", "Education", "Science", "Lifestyle", "Cooking", "Travel", "Shop"),
-        Icons.Default.GridView,
-        categoryArt(Color(0xFF3D3220), Color(0xFF6B5630))
-    )
+    CategoryDef("Notícias", listOf("News", "Weather", "Business", "Legislative", "Public", "General"), Icons.Default.Tv, categoryArt(Color(0xFF17324D), Color(0xFF245D79))),
+    CategoryDef("Desporto", listOf("Sports", "Auto", "Outdoor"), Icons.Default.Tv, categoryArt(Color(0xFF183E2B), Color(0xFF28704A))),
+    CategoryDef("Gospel", listOf("Religious"), Icons.Default.Home, categoryArt(Color(0xFF382A58), Color(0xFF60448A))),
+    CategoryDef("Filmes e Séries", listOf("Movies", "Series", "Classic"), Icons.Default.Movie, categoryArt(Color(0xFF47262B), Color(0xFF803B43))),
+    CategoryDef("Havila Kids", listOf("Kids", "Animation"), Icons.Default.School, categoryArt(Color(0xFF5A4218), Color(0xFF92702A))),
+    CategoryDef("Música e Entretenimento", listOf("Music", "Entertainment", "Comedy", "Interactive", "Relax"), Icons.Default.MusicNote, categoryArt(Color(0xFF183C49), Color(0xFF2B7181))),
+    CategoryDef("Família e Cultura", listOf("Family", "Culture", "Documentary", "Education", "Science", "Lifestyle", "Cooking", "Travel", "Shop"), Icons.Default.GridView, categoryArt(Color(0xFF3D3220), Color(0xFF6B5630)))
 )
 
-/** Main Mozambique channels with entries in the supplied repository and playable URLs. */
+/** Channels from the supplied list that are identified as Mozambique entries. */
 val featuredMozambiqueIds = setOf(
-    "tvm",
     "mntv",
-    "tv-mana-mocambique"
+    "reino-infantil-mz",
+    "tv-mana-mocambique",
+    "tv-vitoria",
+    "tvm-mozambique"
 )
 
 fun localLogoResource(channelId: String): Int? = when (channelId) {
