@@ -11,6 +11,7 @@
         <activity
             android:name=".PlayerActivity"
             android:exported="false"
+            android:launchMode="singleTop"
             android:screenOrientation="landscape"
             android:resizeableActivity="false" />
         <activity
