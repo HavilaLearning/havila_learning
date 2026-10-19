@@ -4,6 +4,10 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Intentionally transparent: the previous VIV artwork has been removed. -->
-    <path android:fillColor="#00000000" android:pathData="M0,0h108v108h-108z" />
+    <!-- Havila TV mark used consistently by the launcher/setup icon. -->
+    <path android:fillColor="#FFFFD84D" android:pathData="M12,30a8,8 0,0 1,8 -8h31a8,8 0,0 1,8 8v25a8,8 0,0 1,-8 8h-31a8,8 0,0 1,-8 -8z" />
+    <path android:fillColor="#081326" android:pathData="M18,35h37v15h-37z" />
+    <path android:fillColor="#FFFFD84D" android:pathData="M57,28h7v30h-7zM66,28h7v30h-7z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M18,70h8v16h-8zM30,70h7v16h-7zM41,70h8v16h-8zM53,70h7v16h-7zM64,70h8v16h-8z" />
+    <path android:fillColor="#FFFFD84D" android:pathData="M77,70h8v16h-8zM89,70h7v16h-7z" />
 </vector>
