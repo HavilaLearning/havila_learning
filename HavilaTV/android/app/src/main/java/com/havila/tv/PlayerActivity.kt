@@ -3,12 +3,15 @@ package com.havila.tv
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.CoroutineScope
@@ -18,16 +21,18 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
-/** Full-screen TV player. Websites are never opened; only resolved media streams are played. */
+/** Full-screen TV player. Only direct media streams are played. */
 class PlayerActivity : ComponentActivity() {
     private var player: ExoPlayer? = null
     private var playerView: PlayerView? = null
     private var channelIndex = -1
     private var liveChannels: List<Channel> = emptyList()
     private lateinit var root: FrameLayout
-    private lateinit var info: TextView
     private var resolveJob: Job? = null
     private val playerScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var currentChannelName = "Canal"
+    private var currentUrl: String? = null
+    private var playbackFailed = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,57 +55,86 @@ class PlayerActivity : ComponentActivity() {
     }
 
     private fun resolveAndPlay(channel: Channel) {
+        currentChannelName = channel.name
+        playbackFailed = false
         showLoading(channel.name)
         resolveJob?.cancel()
         resolveJob = playerScope.launch {
-            val direct = PlaylistResolver.resolve(channel)
-            if (isFinishing || isDestroyed) return@launch
-            if (direct != null) {
-                buildPlayer(direct, channel.name)
-            } else {
-                showUnavailable(channel.name, "Não foi encontrada uma transmissão direta disponível.")
+            try {
+                val direct = PlaylistResolver.resolve(channel)
+                if (isFinishing || isDestroyed) return@launch
+                if (direct != null) {
+                    buildPlayer(direct, channel.name)
+                } else {
+                    showUnavailable(channel.name, "Não foi encontrada uma transmissão direta disponível.")
+                }
+            } catch (_: Exception) {
+                if (!isFinishing && !isDestroyed) {
+                    showUnavailable(channel.name, "Não foi possível preparar este canal.")
+                }
             }
         }
     }
 
     private fun buildPlayer(url: String, name: String) {
-        if (!PlaylistResolver.isDirectMediaUrl(url)) {
-            showUnavailable(name, "O endereço encontrado não é uma transmissão de vídeo direta.")
+        if (!isSafeMediaUrl(url)) {
+            showUnavailable(name, "O endereço da transmissão não é válido.")
             return
         }
 
-        root = FrameLayout(this).apply { setBackgroundColor(Color.BLACK) }
-        val newPlayer = ExoPlayer.Builder(this).build().apply {
-            setMediaItem(MediaItem.fromUri(Uri.parse(url)))
-            playWhenReady = true
-            prepare()
-        }
-        player?.release()
-        player = newPlayer
+        try {
+            currentUrl = url
+            playbackFailed = false
+            player?.release()
+            player = null
 
-        playerView = PlayerView(this).apply {
-            useController = false
-            keepScreenOn = true
-            setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
-            isFocusable = false
+            root = FrameLayout(this).apply { setBackgroundColor(Color.BLACK) }
+            val newPlayer = ExoPlayer.Builder(this).build()
+            newPlayer.addListener(object : Player.Listener {
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (playbackState == Player.STATE_READY) {
+                        playbackFailed = false
+                    }
+                }
+
+                override fun onPlayerError(error: PlaybackException) {
+                    playbackFailed = true
+                    showPlaybackError(name)
+                }
+            })
+            newPlayer.setMediaItem(MediaItem.fromUri(Uri.parse(url)))
+            newPlayer.playWhenReady = true
             player = newPlayer
-        }
-        root.addView(playerView, FrameLayout.LayoutParams(-1, -1))
 
-        info = TextView(this).apply {
-            text = "HAVILA TV  |  $name"
-            setTextColor(Color.WHITE)
-            textSize = 14f
-            setBackgroundColor(Color.argb(150, 0, 0, 0))
-            setPadding(20, 10, 20, 10)
-            alpha = 0.86f
+            playerView = PlayerView(this).apply {
+                useController = false
+                keepScreenOn = true
+                setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
+                isFocusable = false
+                player = newPlayer
+            }
+            root.addView(playerView, FrameLayout.LayoutParams(-1, -1))
+
+            val info = TextView(this).apply {
+                text = "HAVILA TV  |  $name"
+                setTextColor(Color.WHITE)
+                textSize = 14f
+                setBackgroundColor(Color.argb(150, 0, 0, 0))
+                setPadding(20, 10, 20, 10)
+                alpha = 0.86f
+            }
+            root.addView(info, FrameLayout.LayoutParams(-2, -2).apply {
+                leftMargin = 28
+                topMargin = 28
+            })
+            setContentView(root)
+            enterImmersiveTvMode()
+            newPlayer.prepare()
+        } catch (_: Exception) {
+            player?.release()
+            player = null
+            showPlaybackError(name)
         }
-        root.addView(info, FrameLayout.LayoutParams(-2, -2).apply {
-            leftMargin = 28
-            topMargin = 28
-        })
-        setContentView(root)
-        enterImmersiveTvMode()
     }
 
     private fun showLoading(name: String) {
@@ -109,23 +143,57 @@ class PlayerActivity : ComponentActivity() {
             text = "HAVILA TV\n\n$name\n\nA procurar a transmissão..."
             setTextColor(Color.WHITE)
             textSize = 18f
-            gravity = android.view.Gravity.CENTER
-        }
-        root.addView(message, FrameLayout.LayoutParams(-1, -1))
-        setContentView(root)
-    }
-
-    private fun showUnavailable(name: String, reason: String) {
-        root = FrameLayout(this).apply { setBackgroundColor(Color.BLACK) }
-        val message = TextView(this).apply {
-            text = "HAVILA TV\n\n$name\n\n$reason"
-            setTextColor(Color.WHITE)
-            textSize = 18f
-            gravity = android.view.Gravity.CENTER
+            gravity = Gravity.CENTER
             setPadding(48, 48, 48, 48)
         }
         root.addView(message, FrameLayout.LayoutParams(-1, -1))
         setContentView(root)
+        enterImmersiveTvMode()
+    }
+
+    private fun showUnavailable(name: String, reason: String) {
+        playbackFailed = true
+        root = FrameLayout(this).apply { setBackgroundColor(Color.BLACK) }
+        val message = TextView(this).apply {
+            text = "HAVILA TV\n\n$name\n\n$reason\n\nOK  Tentar novamente\nBACK  Voltar"
+            setTextColor(Color.WHITE)
+            textSize = 18f
+            gravity = Gravity.CENTER
+            setPadding(48, 48, 48, 48)
+            isFocusable = true
+            isFocusableInTouchMode = true
+            requestFocus()
+        }
+        root.addView(message, FrameLayout.LayoutParams(-1, -1))
+        setContentView(root)
+        enterImmersiveTvMode()
+    }
+
+    private fun showPlaybackError(name: String) {
+        root = FrameLayout(this).apply { setBackgroundColor(Color.BLACK) }
+        val message = TextView(this).apply {
+            text = "HAVILA TV\n\n$name\n\nNão foi possível reproduzir este canal.\n\nOK  Tentar novamente\nBACK  Voltar"
+            setTextColor(Color.WHITE)
+            textSize = 18f
+            gravity = Gravity.CENTER
+            setPadding(48, 48, 48, 48)
+            isFocusable = true
+            isFocusableInTouchMode = true
+            requestFocus()
+        }
+        root.addView(message, FrameLayout.LayoutParams(-1, -1))
+        setContentView(root)
+        enterImmersiveTvMode()
+    }
+
+    private fun isSafeMediaUrl(url: String): Boolean {
+        return try {
+            val uri = Uri.parse(url)
+            val scheme = uri.scheme?.lowercase()
+            (scheme == "http" || scheme == "https") && PlaylistResolver.isDirectMediaUrl(url)
+        } catch (_: Exception) {
+            false
+        }
     }
 
     private fun enterImmersiveTvMode() {
@@ -139,7 +207,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.action == KeyEvent.ACTION_DOWN) {
+        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
             when (event.keyCode) {
                 KeyEvent.KEYCODE_BACK -> {
                     finish()
@@ -148,18 +216,22 @@ class PlayerActivity : ComponentActivity() {
                 KeyEvent.KEYCODE_DPAD_LEFT,
                 KeyEvent.KEYCODE_DPAD_DOWN,
                 KeyEvent.KEYCODE_CHANNEL_DOWN -> {
-                    switchChannel(-1)
+                    if (!playbackFailed) switchChannel(-1) else finish()
                     return true
                 }
                 KeyEvent.KEYCODE_DPAD_RIGHT,
                 KeyEvent.KEYCODE_DPAD_UP,
                 KeyEvent.KEYCODE_CHANNEL_UP -> {
-                    switchChannel(1)
+                    if (!playbackFailed) switchChannel(1) else finish()
                     return true
                 }
                 KeyEvent.KEYCODE_DPAD_CENTER,
                 KeyEvent.KEYCODE_ENTER -> {
-                    player?.play()
+                    if (playbackFailed && channelIndex in liveChannels.indices) {
+                        resolveAndPlay(liveChannels[channelIndex])
+                    } else {
+                        player?.play()
+                    }
                     return true
                 }
             }
@@ -172,7 +244,6 @@ class PlayerActivity : ComponentActivity() {
         var next = if (channelIndex < 0) 0 else channelIndex + direction
         if (next < 0) next = liveChannels.lastIndex
         if (next > liveChannels.lastIndex) next = 0
-
         channelIndex = next
         resolveAndPlay(liveChannels[next])
     }
@@ -187,6 +258,7 @@ class PlayerActivity : ComponentActivity() {
         playerScope.cancel()
         player?.release()
         player = null
+        playerView = null
         super.onDestroy()
     }
 }
