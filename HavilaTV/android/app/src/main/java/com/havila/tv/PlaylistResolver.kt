@@ -10,6 +10,7 @@ object PlaylistResolver {
     suspend fun resolve(channel: Channel): String? = withContext(Dispatchers.IO) {
         channel.streamUrl?.trim()?.takeIf(::isDirectMediaUrl)?.let { return@withContext it }
         val names = (listOf(channel.name) + channel.aliases)
+            .flatMap { listOf(it, it.substringBefore(" - "), it.substringBefore(" | ")) }
             .map(::normalize).filter { it.isNotBlank() }.distinct()
         for (playlistUrl in channel.playlistUrls) {
             val text = download(playlistUrl) ?: continue
@@ -22,7 +23,7 @@ object PlaylistResolver {
     private fun download(url: String): String? {
         var connection: HttpURLConnection? = null
         return try {
-            val parsed = URL(url)
+            val parsed = URL(url.trim())
             if (parsed.protocol !in setOf("http", "https")) return null
             connection = (parsed.openConnection() as HttpURLConnection).apply {
                 connectTimeout = 12_000
@@ -53,25 +54,40 @@ object PlaylistResolver {
     }
 
     private fun extractDisplayName(extinf: String): String {
+        val tvgName = Regex("tvg-name\\s*=\\s*[\\\"]([^\\\"]+)[\\\"]", RegexOption.IGNORE_CASE)
+            .find(extinf)?.groupValues?.getOrNull(1)
         val comma = extinf.indexOf(',')
-        if (comma >= 0 && comma + 1 < extinf.length) return extinf.substring(comma + 1).trim()
-        return Regex("tvg-name=\\\"([^\\\"]+)\\\"").find(extinf)?.groupValues?.getOrNull(1).orEmpty()
+        val title = if (comma >= 0 && comma + 1 < extinf.length) extinf.substring(comma + 1).trim() else ""
+        return tvgName?.takeIf { it.isNotBlank() } ?: title
     }
 
-    private fun matches(candidate: String, names: List<String>): Boolean = candidate.isNotBlank() && names.any { expected ->
-        candidate == expected || candidate.contains(expected) || expected.contains(candidate)
+    private fun matches(candidate: String, names: List<String>): Boolean {
+        if (candidate.isBlank()) return false
+        return names.any { expected ->
+            expected.isNotBlank() && (
+                candidate == expected ||
+                candidate.contains(expected) ||
+                expected.contains(candidate) ||
+                tokenOverlap(candidate, expected)
+            )
+        }
+    }
+
+    private fun tokenOverlap(a: String, b: String): Boolean {
+        val aTokens = a.split(' ').filter { it.length >= 3 }.toSet()
+        val bTokens = b.split(' ').filter { it.length >= 3 }.toSet()
+        return aTokens.isNotEmpty() && bTokens.isNotEmpty() && aTokens.intersect(bTokens).size >= minOf(2, aTokens.size, bTokens.size)
     }
 
     private fun normalize(value: String): String = value.lowercase()
         .replace("&amp;", "and")
+        .replace("&", "and")
         .replace("tv network", "tv")
+        .replace("television", "tv")
         .replace(Regex("[^a-z0-9]+"), " ")
         .trim()
 
-    /**
-     * IPTV endpoints are not required to expose a media-file extension.
-     * Media3 inspects the HTTP response and determines the media format.
-     */
+    /** IPTV endpoints are not required to expose a media-file extension. */
     fun isDirectMediaUrl(url: String): Boolean = try {
         val value = url.trim()
         if (value.isBlank()) return false
