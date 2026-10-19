@@ -29,8 +29,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -196,25 +195,22 @@ private fun CategoryContent(context: Context, menuRequester: FocusRequester, ini
         LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(7.dp), contentPadding = PaddingValues(end = 20.dp)) { items(category.subcategories, key = { it }) { sub -> SubcategoryChip(sub, sub == selectedSubcategory) { selectedSubcategory = sub } } }
         Spacer(Modifier.height(8.dp)); Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { SectionTitle("CANAIS"); Spacer(Modifier.width(8.dp)); Text("${category.name} / $selectedSubcategory", color = Muted, fontSize = 12.sp, maxLines = 1) }; Spacer(Modifier.height(4.dp))
         if (channels.isEmpty()) Box(Modifier.fillMaxWidth().height(60.dp).padding(end = 20.dp).clip(RoundedCornerShape(10.dp)).background(Surface), contentAlignment = Alignment.CenterStart) { Text("Nenhum canal com fonte disponível nesta subcategoria.", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 16.dp), maxLines = 2) }
-        else LazyColumn(Modifier.fillMaxSize().focusGroup(), contentPadding = PaddingValues(top = 2.dp, bottom = 20.dp, end = 20.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) { items(channels, key = { it.id }) { channel -> ChannelRowCard(channel, context, menuRequester, firstChannelRequester, channel.id == channels.firstOrNull()?.id) } }
+        else LazyColumn(Modifier.fillMaxSize().focusGroup(), contentPadding = PaddingValues(top = 2.dp, bottom = 20.dp, end = 20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { items(channels, key = { it.id }) { channel -> ChannelRowCard(channel, context, menuRequester, firstChannelRequester, channel.id == channels.firstOrNull()?.id) } }
     }
 }
 
-@Composable private fun FavoritesContent() { Column(Modifier.fillMaxSize().padding(start = 20.dp, top = 8.dp)) { SectionTitle("FAVORITOS"); Spacer(Modifier.height(10.dp)); Text("Os canais favoritos poderão ser adicionados a partir da lista de canais.", color = Muted, fontSize = 14.sp) } }
-@Composable private fun SettingsContent() { Column(Modifier.fillMaxSize().padding(start = 20.dp, top = 8.dp)) { SectionTitle("CONFIGURAÇÕES"); Spacer(Modifier.height(10.dp)); Text("Configurações da Havila TV", color = White, fontSize = 16.sp, fontWeight = FontWeight.Bold); Text("A reprodução utiliza as fontes de transmissão definidas no catálogo.", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp)) } }
-@Composable private fun SectionTitle(text: String) { Text(text, color = White, fontSize = 17.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.0.sp, maxLines = 1) }
+@Composable private fun SectionTitle(text: String) { Text(text, color = White, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 7.dp)) }
 
 @Composable
-private fun CategoryCard(category: CategoryDef, selected: Boolean, onSelect: () -> Unit, menuRequester: FocusRequester) {
+private fun CategoryCard(category: CategoryDefinition, selected: Boolean, onSelect: () -> Unit, menuRequester: FocusRequester) {
     var focused by remember { mutableStateOf(false) }
-    Row(Modifier.width(225.dp).height(54.dp).scale(if (focused) 1.025f else 1f).clip(RoundedCornerShape(10.dp)).background(if (selected) Brush.horizontalGradient(listOf(GoldStart, GoldEnd)) else category.art).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(10.dp)).onFocusChanged { focused = it.isFocused }.tvAction(onSelect).focusProperties { left = menuRequester }, verticalAlignment = Alignment.CenterVertically) { Icon(category.icon, category.name, tint = if (selected) Color(0xFF10151C) else White, modifier = Modifier.padding(start = 13.dp).width(25.dp)); Text(category.name, color = if (selected) Color(0xFF10151C) else White, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.padding(start = 9.dp, end = 8.dp)) }
+    Row(Modifier.width(170.dp).height(58.dp).clip(RoundedCornerShape(10.dp)).background(if (selected) Color(0xFF1B2D3D) else Surface).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(10.dp)).onFocusChanged { focused = it.isFocused }.tvAction(onSelect).focusProperties { left = menuRequester }, verticalAlignment = Alignment.CenterVertically) { Text(category.icon, fontSize = 21.sp, modifier = Modifier.padding(start = 10.dp)); Column(Modifier.padding(start = 7.dp)) { Text(category.name, color = White, fontSize = 11.sp, fontWeight = FontWeight.Bold); Text("${category.subcategories.size} secções", color = Muted, fontSize = 8.sp, modifier = Modifier.padding(top = 2.dp)) } }
 }
 
 @Composable
 private fun SubcategoryChip(name: String, selected: Boolean, onSelect: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val chipBackground = if (selected) Brush.horizontalGradient(listOf(GoldStart, GoldEnd)) else Brush.linearGradient(listOf(Surface, Surface))
-    Box(Modifier.clip(RoundedCornerShape(17.dp)).background(chipBackground).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(17.dp)).onFocusChanged { focused = it.isFocused }.tvAction(onSelect).padding(horizontal = 13.dp, vertical = 7.dp)) { Text(name, color = if (selected) Color(0xFF10151C) else White, fontSize = 12.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, maxLines = 1) }
+    Row(Modifier.height(34.dp).clip(RoundedCornerShape(8.dp)).background(if (selected) Color(0xFF1B2D3D) else Surface).border(if (focused) 2.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(8.dp)).onFocusChanged { focused = it.isFocused }.tvAction(onSelect).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) { Text(name, color = White, fontSize = 10.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal) }
 }
 
 @Composable
@@ -231,10 +227,10 @@ private fun FeaturedChannelCard(channel: Channel, context: Context, menuRequeste
 private fun ChannelRowCard(channel: Channel, context: Context, menuRequester: FocusRequester, firstRequester: FocusRequester? = null, isFirst: Boolean = false) {
     var focused by remember { mutableStateOf(false) }
     val logoResource = localLogoResource(channel.id)
-    Row(Modifier.fillMaxWidth().heightIn(min = 62.dp, max = 72.dp).padding(end = 20.dp).clip(RoundedCornerShape(10.dp)).background(Surface).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(10.dp)).onFocusChanged { focused = it.isFocused }.then(if (isFirst && firstRequester != null) Modifier.focusRequester(firstRequester) else Modifier).tvAction { openChannel(context, channel) }.focusProperties { left = menuRequester }, verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.widthIn(min = 92.dp, max = 112.dp).fillMaxHeight().padding(5.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF151E2C))) { if (logoResource != null) Image(painter = painterResource(id = logoResource), contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(6.dp), contentScale = ContentScale.Fit) else Text(channel.name, color = White, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, maxLines = 2, modifier = Modifier.align(Alignment.Center)) }
-        Column(Modifier.padding(start = 10.dp).weight(1f)) { Text(channel.name, color = White, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1); Text(channel.description, color = Muted, fontSize = 11.sp, maxLines = 2, modifier = Modifier.padding(top = 1.dp)) }
-        Text("AO VIVO", color = White, fontSize = 8.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 11.dp))
+    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp, max = 64.dp).padding(end = 20.dp).clip(RoundedCornerShape(9.dp)).background(Surface).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(9.dp)).onFocusChanged { focused = it.isFocused }.then(if (isFirst && firstRequester != null) Modifier.focusRequester(firstRequester) else Modifier).tvAction { openChannel(context, channel) }.focusProperties { left = menuRequester }, verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.widthIn(min = 76.dp, max = 88.dp).fillMaxHeight().padding(4.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF151E2C))) { if (logoResource != null) Image(painter = painterResource(id = logoResource), contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(5.dp), contentScale = ContentScale.Fit) else Text(channel.name, color = White, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, maxLines = 2, modifier = Modifier.align(Alignment.Center)) }
+        Column(Modifier.padding(start = 8.dp).weight(1f)) { Text(channel.name, color = White, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1); Text(channel.description, color = Muted, fontSize = 10.sp, maxLines = 1, modifier = Modifier.padding(top = 1.dp)) }
+        Text("AO VIVO", color = White, fontSize = 8.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 9.dp))
     }
 }
 
