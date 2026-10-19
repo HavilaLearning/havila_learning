@@ -102,7 +102,6 @@ val featuredMozambiqueIds = setOf(
 
 fun localLogoResource(channelId: String): Int? = when (channelId) {
     "dw-english" -> R.drawable.dw_logo
-    "tvm" -> R.drawable.tvm_logo
     "goodnews-tv" -> R.drawable.goodnews_tv_logo
     "good-news-world" -> R.drawable.goodnews_world_tv_logo
     "hope-channel-international" -> R.drawable.hope_channel_logo
