@@ -125,7 +125,42 @@ private fun currentTime(): String = SimpleDateFormat("HH:mm", Locale.getDefault(
 }
 
 @Composable private fun Logo() {
-    Column(Modifier.fillMaxWidth().padding(start = 18.dp, top = 22.dp, end = 18.dp), horizontalAlignment = Alignment.CenterHorizontally) { Row(verticalAlignment = Alignment.CenterVertically) { Box(Modifier.width(48.dp).height(38.dp).border(4.dp, GoldStart, RoundedCornerShape(10.dp))); Text("HAVILA", color = White, fontSize = 38.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 7.dp)); Text("TV", color = GoldStart, fontSize = 35.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 5.dp)) }; Text("Boa Informação. Bons Valores. Para Toda a Família.", color = Muted, fontSize = 9.sp, maxLines = 1, modifier = Modifier.padding(top = 5.dp)) }
+    Column(
+        Modifier.fillMaxWidth().padding(start = 16.dp, top = 18.dp, end = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Box(
+                Modifier.width(38.dp).height(30.dp)
+                    .border(3.dp, GoldStart, RoundedCornerShape(8.dp))
+            )
+            Text(
+                "HAVILA",
+                color = White,
+                fontSize = 31.sp,
+                fontWeight = FontWeight.ExtraBold,
+                modifier = Modifier.padding(start = 6.dp)
+            )
+            Text(
+                "TV",
+                color = GoldStart,
+                fontSize = 29.sp,
+                fontWeight = FontWeight.ExtraBold,
+                modifier = Modifier.padding(start = 5.dp)
+            )
+        }
+        Text(
+            "Boa Informação. Bons Valores. Para Toda a Família.",
+            color = Muted,
+            fontSize = 8.sp,
+            maxLines = 1,
+            modifier = Modifier.padding(top = 5.dp)
+        )
+    }
 }
 
 @Composable private fun TopActions(time: String, height: Dp, horizontalPadding: Dp, onSearch: () -> Unit, onSettings: () -> Unit) {
