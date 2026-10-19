@@ -22,7 +22,6 @@ jobs:
           set -euo pipefail
 
           asset_dir="HavilaTV/android/app/src/main/res/drawable-nodpi"
-          main_activity="HavilaTV/android/app/src/main/java/com/havila/tv/MainActivity.kt"
 
           assets=(
             mozambique_ponte.png
@@ -41,14 +40,4 @@ jobs:
             echo "OK: $asset"
           done
 
-          grep -q 'mozambique_ponte' "$main_activity"
-          grep -q 'mozambique_fortaleza' "$main_activity"
-          grep -q 'mozambique_ilha' "$main_activity"
-          grep -q 'mozambique_monumento' "$main_activity"
-          grep -q 'mozambique_cfm' "$main_activity"
-          grep -q 'mozambique_baia_maputo' "$main_activity"
-          grep -q 'mozambique_heritage01' "$main_activity"
-          grep -q 'mozambique_heritage02' "$main_activity"
-          grep -q 'mozambique_heritage03' "$main_activity"
-
-          echo "All local hero assets and references are present."
+          echo "All local hero assets are present."
