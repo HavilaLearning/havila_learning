@@ -208,7 +208,7 @@ private fun Hero(modifier: Modifier = Modifier, horizontalPadding: Dp) {
     val slide = heroSlides[currentIndex]
     Box(modifier.clip(RoundedCornerShape(0.dp, 0.dp, 18.dp, 18.dp))) {
         Crossfade(targetState = slide, animationSpec = tween(900), label = "hero-background") { activeSlide ->
-            Image(painterResource(activeSlide.imageRes), activeSlide.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            Image(painter = painterResource(id = activeSlide.imageRes), contentDescription = activeSlide.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         }
         Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Bg.copy(alpha = .98f), Bg.copy(alpha = .78f), Bg.copy(alpha = .30f), Color.Transparent))))
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent, Bg.copy(alpha = .48f)))))
@@ -352,7 +352,12 @@ private fun FeaturedChannelCard(channel: Channel, context: Context, menuRequeste
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(Modifier.width(88.dp).fillMaxHeight().padding(6.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF151E2C))) {
-            if (logoResource != null) Image(painterResource(logoResource), channel.name, Modifier.fillMaxSize().padding(7.dp), ContentScale.Fit)
+            if (logoResource != null) Image(
+                painter = painterResource(id = logoResource),
+                contentDescription = channel.name,
+                modifier = Modifier.fillMaxSize().padding(7.dp),
+                contentScale = ContentScale.Fit
+            )
             else Text(channel.name, color = White, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Center))
         }
         Column(Modifier.padding(start = 10.dp).weight(1f)) {
@@ -376,7 +381,12 @@ private fun ChannelRowCard(channel: Channel, requester: FocusRequester?, context
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(Modifier.width(145.dp).fillMaxHeight().padding(7.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF151E2C))) {
-            if (logoResource != null) Image(painterResource(logoResource), channel.name, Modifier.fillMaxSize().padding(8.dp), ContentScale.Fit)
+            if (logoResource != null) Image(
+                painter = painterResource(id = logoResource),
+                contentDescription = channel.name,
+                modifier = Modifier.fillMaxSize().padding(8.dp),
+                contentScale = ContentScale.Fit
+            )
             else Text(channel.name, color = White, fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.align(Alignment.Center))
         }
         Column(Modifier.padding(start = 16.dp).weight(1f)) {
