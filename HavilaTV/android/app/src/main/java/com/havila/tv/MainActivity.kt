@@ -15,7 +15,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -103,7 +102,13 @@ private fun HavilaTvHome() {
             SideBar(selectedMenu, menuRequester, { selectedMenu = it }, sidebarWidth)
             Column(Modifier.weight(1f).fillMaxHeight()) {
                 TopActions(clock, topBarHeight, contentPadding, { selectedMenu = 1 }, { selectedMenu = 4 })
-                Hero(Modifier.fillMaxWidth().height(heroHeight), contentPadding)
+                // Hero is intentionally shown only on Home. Channel and Category screens
+                // receive the entire remaining vertical space so channel cards stay visible.
+                if (selectedMenu == 0) {
+                    Hero(Modifier.fillMaxWidth().height(heroHeight), contentPadding)
+                } else {
+                    Spacer(Modifier.height(6.dp))
+                }
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     DashboardContent(context, menuRequester, selectedMenu, selectedCategoryIndex) { index -> selectedCategoryIndex = index; selectedMenu = 2 }
                 }
@@ -196,19 +201,19 @@ private fun CategoryContent(context: Context, menuRequester: FocusRequester, ini
     val firstChannelRequester = remember(category.name, selectedSubcategory) { FocusRequester() }
     LaunchedEffect(category.name, selectedSubcategory, channels) { awaitFrame(); awaitFrame(); runCatching { if (channels.isNotEmpty()) firstChannelRequester.requestFocus() } }
 
-    Column(Modifier.fillMaxSize().padding(start = 20.dp, top = 8.dp)) {
+    Column(Modifier.fillMaxSize().padding(start = 20.dp, top = 8.dp, bottom = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) { SectionTitle("CATEGORIAS"); Spacer(Modifier.width(10.dp)); Text("Escolha uma área", color = Muted, fontSize = 12.sp) }
         LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(end = 20.dp)) {
             itemsIndexed(categoryDefinitions, key = { _, item -> item.name }) { index, item -> CategoryCard(item, index == selectedCategoryIndex, { selectedCategoryIndex = index; selectedSubcategory = item.subcategories.first() }, menuRequester) }
         }
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) { SectionTitle("SUB-CATEGORIAS"); Spacer(Modifier.width(10.dp)); Text(category.name, color = FocusGold, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
         LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(end = 20.dp)) {
             items(category.subcategories, key = { it }) { sub -> SubcategoryChip(displaySubcategory(sub), sub == selectedSubcategory) { selectedSubcategory = sub } }
         }
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             SectionTitle("CANAIS")
             Spacer(Modifier.width(10.dp))
@@ -216,14 +221,16 @@ private fun CategoryContent(context: Context, menuRequester: FocusRequester, ini
             Spacer(Modifier.weight(1f))
             Text("${channels.size} disponíveis", color = Muted, fontSize = 11.sp)
         }
-        Spacer(Modifier.height(3.dp))
+        Spacer(Modifier.height(2.dp))
 
         if (channels.isEmpty()) {
             Box(Modifier.fillMaxWidth().height(70.dp).padding(end = 20.dp).clip(RoundedCornerShape(12.dp)).background(Surface), contentAlignment = Alignment.CenterStart) {
                 Text("Nenhum canal com fonte disponível nesta subcategoria.", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 16.dp), maxLines = 2)
             }
         } else {
-            LazyVerticalGrid(columns = GridCells.Adaptive(minSize = 190.dp), modifier = Modifier.fillMaxSize().focusGroup(), contentPadding = PaddingValues(top = 2.dp, bottom = 20.dp, end = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            // The grid is constrained to the remaining space below the controls.
+            // It cannot slide underneath the top bar because Category screens do not render Hero.
+            LazyVerticalGrid(columns = GridCells.Adaptive(minSize = 190.dp), modifier = Modifier.fillMaxWidth().weight(1f), contentPadding = PaddingValues(top = 2.dp, bottom = 20.dp, end = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(channels, key = { it.id }) { channel -> ChannelGridCard(channel, context, firstChannelRequester, channel.id == channels.firstOrNull()?.id) }
             }
         }
