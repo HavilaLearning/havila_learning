@@ -88,10 +88,14 @@ object PlaylistResolver {
         .trim()
 
     /** IPTV endpoints are not required to expose a media-file extension. */
-    fun isDirectMediaUrl(url: String): Boolean = try {
-        val value = url.trim()
-        if (value.isBlank()) return false
-        val uri = URL(value)
-        uri.protocol in setOf("http", "https") && !uri.host.isNullOrBlank()
-    } catch (_: Exception) { false }
+    fun isDirectMediaUrl(url: String): Boolean {
+        return try {
+            val value = url.trim()
+            if (value.isBlank()) return false
+            val uri = URL(value)
+            uri.protocol in setOf("http", "https") && !uri.host.isNullOrBlank()
+        } catch (_: Exception) {
+            false
+        }
+    }
 }
