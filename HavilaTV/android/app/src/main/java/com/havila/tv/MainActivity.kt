@@ -15,10 +15,12 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -48,6 +50,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import coil.compose.AsyncImage
 import kotlinx.coroutines.android.awaitFrame
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -82,7 +85,8 @@ private fun HavilaTvHome() {
     val menuRequester = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
-        awaitFrame(); runCatching { menuRequester.requestFocus() }
+        awaitFrame()
+        runCatching { menuRequester.requestFocus() }
         while (true) { clock = currentTime(); kotlinx.coroutines.delay(30_000) }
     }
 
@@ -98,7 +102,13 @@ private fun HavilaTvHome() {
             SideBar(selectedMenu, menuRequester, { selectedMenu = it }, sidebarWidth)
             Column(Modifier.weight(1f).fillMaxHeight()) {
                 TopActions(clock, topBarHeight, contentPadding, { selectedMenu = 1 }, { selectedMenu = 4 })
-                Hero(Modifier.fillMaxWidth().height(heroHeight), contentPadding)
+                // Hero is intentionally shown only on Home. Channel and Category screens
+                // receive the entire remaining vertical space so channel cards stay visible.
+                if (selectedMenu == 0) {
+                    Hero(Modifier.fillMaxWidth().height(heroHeight), contentPadding)
+                } else {
+                    Spacer(Modifier.height(6.dp))
+                }
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     DashboardContent(context, menuRequester, selectedMenu, selectedCategoryIndex) { index -> selectedCategoryIndex = index; selectedMenu = 2 }
                 }
@@ -163,9 +173,9 @@ private fun HomeContent(context: Context, menuRequester: FocusRequester, onCateg
     val featuredChannels = remember { ChannelRepository.channels.filter { it.id in featuredMozambiqueIds && hasPlayableSource(it) } }
     Column(Modifier.fillMaxSize().padding(start = 20.dp, top = 8.dp)) {
         SectionTitle("PRINCIPAIS CANAIS DE MOÇAMBIQUE")
-        LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(end = 20.dp)) { items(featuredChannels, key = { it.id }) { channel -> FeaturedChannelCard(channel, context, menuRequester) } }
-        Spacer(Modifier.height(10.dp)); SectionTitle("CATEGORIAS")
-        LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(end = 20.dp)) { itemsIndexed(categoryDefinitions, key = { _, category -> category.name }) { index, category -> CategoryCard(category, false, { onCategorySelected(index) }, menuRequester) } }
+        LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(end = 20.dp)) { items(featuredChannels, key = { it.id }) { channel -> FeaturedChannelCard(channel, context, menuRequester) } }
+        Spacer(Modifier.height(12.dp)); SectionTitle("CATEGORIAS")
+        LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(end = 20.dp)) { itemsIndexed(categoryDefinitions, key = { _, category -> category.name }) { index, category -> CategoryCard(category, false, { onCategorySelected(index) }, menuRequester) } }
     }
 }
 
@@ -175,8 +185,10 @@ private fun ChannelContent(context: Context, menuRequester: FocusRequester) {
     val firstChannelRequester = remember { FocusRequester() }
     LaunchedEffect(channels) { awaitFrame(); awaitFrame(); runCatching { if (channels.isNotEmpty()) firstChannelRequester.requestFocus() } }
     Column(Modifier.fillMaxSize().padding(start = 20.dp, top = 8.dp)) {
-        SectionTitle("TODOS OS CANAIS")
-        LazyColumn(Modifier.fillMaxSize().focusGroup(), contentPadding = PaddingValues(top = 3.dp, bottom = 20.dp, end = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { items(channels, key = { it.id }) { channel -> ChannelRowCard(channel, context, menuRequester, firstChannelRequester, channel.id == channels.firstOrNull()?.id) } }
+        Row(verticalAlignment = Alignment.CenterVertically) { SectionTitle("TODOS OS CANAIS"); Spacer(Modifier.width(10.dp)); Text("${channels.size} canais", color = Muted, fontSize = 12.sp) }
+        LazyVerticalGrid(columns = GridCells.Adaptive(minSize = 190.dp), modifier = Modifier.fillMaxSize().focusGroup(), contentPadding = PaddingValues(top = 2.dp, bottom = 20.dp, end = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(channels, key = { it.id }) { channel -> ChannelGridCard(channel, context, firstChannelRequester, channel.id == channels.firstOrNull()?.id) }
+        }
     }
 }
 
@@ -188,14 +200,40 @@ private fun CategoryContent(context: Context, menuRequester: FocusRequester, ini
     val channels = remember(category.name, selectedSubcategory) { channelsFor(category.name, selectedSubcategory) }
     val firstChannelRequester = remember(category.name, selectedSubcategory) { FocusRequester() }
     LaunchedEffect(category.name, selectedSubcategory, channels) { awaitFrame(); awaitFrame(); runCatching { if (channels.isNotEmpty()) firstChannelRequester.requestFocus() } }
-    Column(Modifier.fillMaxSize().padding(start = 20.dp, top = 8.dp)) {
-        SectionTitle("CATEGORIAS")
-        LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(end = 20.dp)) { itemsIndexed(categoryDefinitions, key = { _, item -> item.name }) { index, item -> CategoryCard(item, index == selectedCategoryIndex, { selectedCategoryIndex = index; selectedSubcategory = item.subcategories.first() }, menuRequester) } }
-        Spacer(Modifier.height(8.dp)); SectionTitle("SUB-CATEGORIAS")
-        LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(7.dp), contentPadding = PaddingValues(end = 20.dp)) { items(category.subcategories, key = { it }) { sub -> SubcategoryChip(sub, sub == selectedSubcategory) { selectedSubcategory = sub } } }
-        Spacer(Modifier.height(8.dp)); Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { SectionTitle("CANAIS"); Spacer(Modifier.width(8.dp)); Text("${category.name} / $selectedSubcategory", color = Muted, fontSize = 12.sp, maxLines = 1) }; Spacer(Modifier.height(4.dp))
-        if (channels.isEmpty()) Box(Modifier.fillMaxWidth().height(60.dp).padding(end = 20.dp).clip(RoundedCornerShape(10.dp)).background(Surface), contentAlignment = Alignment.CenterStart) { Text("Nenhum canal com fonte disponível nesta subcategoria.", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 16.dp), maxLines = 2) }
-        else LazyColumn(Modifier.fillMaxSize().focusGroup(), contentPadding = PaddingValues(top = 2.dp, bottom = 20.dp, end = 20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { items(channels, key = { it.id }) { channel -> ChannelRowCard(channel, context, menuRequester, firstChannelRequester, channel.id == channels.firstOrNull()?.id) } }
+
+    Column(Modifier.fillMaxSize().padding(start = 20.dp, top = 8.dp, bottom = 10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) { SectionTitle("CATEGORIAS"); Spacer(Modifier.width(10.dp)); Text("Escolha uma área", color = Muted, fontSize = 12.sp) }
+        LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(end = 20.dp)) {
+            itemsIndexed(categoryDefinitions, key = { _, item -> item.name }) { index, item -> CategoryCard(item, index == selectedCategoryIndex, { selectedCategoryIndex = index; selectedSubcategory = item.subcategories.first() }, menuRequester) }
+        }
+
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) { SectionTitle("SUB-CATEGORIAS"); Spacer(Modifier.width(10.dp)); Text(category.name, color = FocusGold, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+        LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(end = 20.dp)) {
+            items(category.subcategories, key = { it }) { sub -> SubcategoryChip(displaySubcategory(sub), sub == selectedSubcategory) { selectedSubcategory = sub } }
+        }
+
+        Spacer(Modifier.height(6.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SectionTitle("CANAIS")
+            Spacer(Modifier.width(10.dp))
+            Text("${category.name}  •  ${displaySubcategory(selectedSubcategory)}", color = Muted, fontSize = 12.sp, maxLines = 1)
+            Spacer(Modifier.weight(1f))
+            Text("${channels.size} disponíveis", color = Muted, fontSize = 11.sp)
+        }
+        Spacer(Modifier.height(2.dp))
+
+        if (channels.isEmpty()) {
+            Box(Modifier.fillMaxWidth().height(70.dp).padding(end = 20.dp).clip(RoundedCornerShape(12.dp)).background(Surface), contentAlignment = Alignment.CenterStart) {
+                Text("Nenhum canal com fonte disponível nesta subcategoria.", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 16.dp), maxLines = 2)
+            }
+        } else {
+            // The grid is constrained to the remaining space below the controls.
+            // It cannot slide underneath the top bar because Category screens do not render Hero.
+            LazyVerticalGrid(columns = GridCells.Adaptive(minSize = 190.dp), modifier = Modifier.fillMaxWidth().weight(1f), contentPadding = PaddingValues(top = 2.dp, bottom = 20.dp, end = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(channels, key = { it.id }) { channel -> ChannelGridCard(channel, context, firstChannelRequester, channel.id == channels.firstOrNull()?.id) }
+            }
+        }
     }
 }
 
@@ -204,34 +242,87 @@ private fun CategoryContent(context: Context, menuRequester: FocusRequester, ini
 @Composable
 private fun CategoryCard(category: CategoryDefinition, selected: Boolean, onSelect: () -> Unit, menuRequester: FocusRequester) {
     var focused by remember { mutableStateOf(false) }
-    Row(Modifier.width(170.dp).height(58.dp).clip(RoundedCornerShape(10.dp)).background(if (selected) Color(0xFF1B2D3D) else Surface).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(10.dp)).onFocusChanged { focused = it.isFocused }.tvAction(onSelect).focusProperties { left = menuRequester }, verticalAlignment = Alignment.CenterVertically) { Text(category.icon, fontSize = 21.sp, modifier = Modifier.padding(start = 10.dp)); Column(Modifier.padding(start = 7.dp)) { Text(category.name, color = White, fontSize = 11.sp, fontWeight = FontWeight.Bold); Text("${category.subcategories.size} secções", color = Muted, fontSize = 8.sp, modifier = Modifier.padding(top = 2.dp)) } }
+    Row(Modifier.width(190.dp).height(62.dp).clip(RoundedCornerShape(12.dp)).background(if (selected) Brush.horizontalGradient(listOf(GoldStart, GoldEnd)) else category.art).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(12.dp)).onFocusChanged { focused = it.isFocused }.tvAction(onSelect).focusProperties { left = menuRequester }, verticalAlignment = Alignment.CenterVertically) {
+        Text(category.icon, color = if (selected) Color(0xFF10151C) else White, fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 13.dp))
+        Column(Modifier.padding(start = 9.dp, end = 8.dp)) { Text(category.name, color = if (selected) Color(0xFF10151C) else White, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 2); Text("${category.subcategories.size} secções", color = if (selected) Color(0xFF10151C).copy(alpha = .72f) else White.copy(alpha = .68f), fontSize = 8.sp, modifier = Modifier.padding(top = 2.dp)) }
+    }
 }
 
 @Composable
 private fun SubcategoryChip(name: String, selected: Boolean, onSelect: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    Row(Modifier.height(34.dp).clip(RoundedCornerShape(8.dp)).background(if (selected) Color(0xFF1B2D3D) else Surface).border(if (focused) 2.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(8.dp)).onFocusChanged { focused = it.isFocused }.tvAction(onSelect).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) { Text(name, color = White, fontSize = 10.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal) }
+    Row(Modifier.height(38.dp).clip(RoundedCornerShape(19.dp)).background(if (selected) Brush.horizontalGradient(listOf(GoldStart, GoldEnd)) else Surface).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(19.dp)).onFocusChanged { focused = it.isFocused }.tvAction(onSelect).padding(horizontal = 15.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(name, color = if (selected) Color(0xFF10151C) else White, fontSize = 11.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
+    }
 }
 
 @Composable
 private fun FeaturedChannelCard(channel: Channel, context: Context, menuRequester: FocusRequester) {
     var focused by remember { mutableStateOf(false) }
-    val logoResource = localLogoResource(channel.id)
-    Row(Modifier.width(205.dp).height(66.dp).clip(RoundedCornerShape(10.dp)).background(Surface).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(10.dp)).onFocusChanged { focused = it.isFocused }.tvAction { if (hasPlayableSource(channel)) openChannel(context, channel) }.focusProperties { left = menuRequester }, verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.width(70.dp).fillMaxHeight().padding(5.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF151E2C))) { if (logoResource != null) Image(painter = painterResource(id = logoResource), contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(5.dp), contentScale = ContentScale.Fit) else Text(channel.name, color = White, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 2, modifier = Modifier.align(Alignment.Center)) }
-        Column(Modifier.padding(start = 7.dp).weight(1f)) { Text(channel.name, color = White, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1); Text("AO VIVO", color = LiveRed, fontSize = 7.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 2.dp)) }
+    Row(Modifier.width(215.dp).height(82.dp).clip(RoundedCornerShape(12.dp)).background(Surface).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(12.dp)).onFocusChanged { focused = it.isFocused }.tvAction { if (hasPlayableSource(channel)) openChannel(context, channel) }.focusProperties { left = menuRequester }, verticalAlignment = Alignment.CenterVertically) {
+        ChannelLogo(channel, Modifier.width(86.dp).fillMaxHeight().padding(6.dp))
+        Column(Modifier.padding(start = 8.dp, end = 8.dp).weight(1f)) { Text(channel.name, color = White, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 2); Text("AO VIVO", color = LiveRed, fontSize = 8.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 3.dp)) }
     }
 }
 
 @Composable
-private fun ChannelRowCard(channel: Channel, context: Context, menuRequester: FocusRequester, firstRequester: FocusRequester? = null, isFirst: Boolean = false) {
+private fun ChannelGridCard(channel: Channel, context: Context, firstRequester: FocusRequester? = null, isFirst: Boolean = false) {
     var focused by remember { mutableStateOf(false) }
-    val logoResource = localLogoResource(channel.id)
-    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp, max = 64.dp).padding(end = 20.dp).clip(RoundedCornerShape(9.dp)).background(Surface).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(9.dp)).onFocusChanged { focused = it.isFocused }.then(if (isFirst && firstRequester != null) Modifier.focusRequester(firstRequester) else Modifier).tvAction { openChannel(context, channel) }.focusProperties { left = menuRequester }, verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.widthIn(min = 76.dp, max = 88.dp).fillMaxHeight().padding(4.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF151E2C))) { if (logoResource != null) Image(painter = painterResource(id = logoResource), contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(5.dp), contentScale = ContentScale.Fit) else Text(channel.name, color = White, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, maxLines = 2, modifier = Modifier.align(Alignment.Center)) }
-        Column(Modifier.padding(start = 8.dp).weight(1f)) { Text(channel.name, color = White, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1); Text(channel.description, color = Muted, fontSize = 10.sp, maxLines = 1, modifier = Modifier.padding(top = 1.dp)) }
-        Text("AO VIVO", color = White, fontSize = 8.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 9.dp))
+    Column(Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(14.dp)).background(if (focused) Color(0xFF172333) else Surface).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(14.dp)).onFocusChanged { focused = it.isFocused }.then(if (isFirst && firstRequester != null) Modifier.focusRequester(firstRequester) else Modifier).tvAction { if (hasPlayableSource(channel)) openChannel(context, channel) }.padding(7.dp)) {
+        ChannelLogo(channel, Modifier.fillMaxWidth().height(88.dp))
+        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) { Text(channel.name, color = White, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1); Text(channel.description.ifBlank { displaySubcategory(channel.subcategory) }, color = Muted, fontSize = 9.sp, maxLines = 1, modifier = Modifier.padding(top = 2.dp)) }
+            Text("LIVE", color = LiveRed, fontSize = 8.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 5.dp))
+        }
     }
+}
+
+@Composable
+private fun ChannelLogo(channel: Channel, modifier: Modifier = Modifier) {
+    var failed by remember(channel.id, channel.logoUrl) { mutableStateOf(false) }
+    val local = localLogoResource(channel.id)
+    Box(modifier.clip(RoundedCornerShape(9.dp)).background(Color(0xFF151E2C)), contentAlignment = Alignment.Center) {
+        when {
+            local != null -> Image(painter = painterResource(id = local), contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit)
+            !channel.logoUrl.isNullOrBlank() && !failed -> AsyncImage(model = channel.logoUrl, contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit, onError = { failed = true })
+            else -> Text(channelInitials(channel.name), color = White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+        }
+    }
+}
+
+private fun channelInitials(name: String): String = name.split(Regex("\\s+")).filter { it.isNotBlank() }.take(3).joinToString("") { it.first().uppercase() }.take(4)
+
+private fun displaySubcategory(value: String): String = when (value) {
+    "News" -> "Notícias"
+    "Weather" -> "Meteorologia"
+    "Business" -> "Negócios"
+    "Legislative" -> "Legislativo"
+    "Public" -> "Serviço Público"
+    "General" -> "Geral"
+    "Sports" -> "Desporto"
+    "Auto" -> "Automobilismo"
+    "Outdoor" -> "Ar Livre"
+    "Religious" -> "Religioso"
+    "Movies" -> "Filmes"
+    "Series" -> "Séries"
+    "Classic" -> "Clássicos"
+    "Kids" -> "Infantil"
+    "Animation" -> "Animação"
+    "Music" -> "Música"
+    "Entertainment" -> "Entretenimento"
+    "Comedy" -> "Comédia"
+    "Interactive" -> "Interativo"
+    "Relax" -> "Relaxamento"
+    "Family" -> "Família"
+    "Culture" -> "Cultura"
+    "Documentary" -> "Documentários"
+    "Education" -> "Educação"
+    "Science" -> "Ciência"
+    "Lifestyle" -> "Estilo de vida"
+    "Cooking" -> "Culinária"
+    "Travel" -> "Viagens"
+    "Shop" -> "Compras"
+    else -> value
 }
 
 private fun channelsFor(category: String, subcategory: String): List<Channel> = ChannelRepository.channels.filter { it.category == category && it.subcategory == subcategory && hasPlayableSource(it) }
