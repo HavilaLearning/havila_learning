@@ -239,7 +239,7 @@ private fun CategoryContent(context: Context, menuRequester: FocusRequester, ini
 @Composable
 private fun CategoryCard(category: CategoryDefinition, selected: Boolean, onSelect: () -> Unit, menuRequester: FocusRequester) {
     var focused by remember { mutableStateOf(false) }
-    Row(Modifier.width(190.dp).height(62.dp).clip(RoundedCornerShape(12.dp)).background(if (selected) Brush.horizontalGradient(listOf(GoldStart, GoldEnd)) else SolidColor(category.art)).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(12.dp)).onFocusChanged { focused = it.isFocused }.tvAction(onSelect).focusProperties { left = menuRequester }, verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.width(190.dp).height(62.dp).clip(RoundedCornerShape(12.dp)).then(if (selected) Modifier.background(Brush.horizontalGradient(listOf(GoldStart, GoldEnd))) else Modifier.background(category.art)).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(12.dp)).onFocusChanged { focused = it.isFocused }.tvAction(onSelect).focusProperties { left = menuRequester }, verticalAlignment = Alignment.CenterVertically) {
         Text(category.icon, color = if (selected) Color(0xFF10151C) else White, fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 13.dp))
         Column(Modifier.padding(start = 9.dp, end = 8.dp)) { Text(category.name, color = if (selected) Color(0xFF10151C) else White, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 2); Text("${category.subcategories.size} secções", color = if (selected) Color(0xFF10151C).copy(alpha = .72f) else White.copy(alpha = .68f), fontSize = 8.sp, modifier = Modifier.padding(top = 2.dp)) }
     }
@@ -248,7 +248,7 @@ private fun CategoryCard(category: CategoryDefinition, selected: Boolean, onSele
 @Composable
 private fun SubcategoryChip(name: String, selected: Boolean, onSelect: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    Row(Modifier.height(38.dp).clip(RoundedCornerShape(19.dp)).background(if (selected) Brush.horizontalGradient(listOf(GoldStart, GoldEnd)) else SolidColor(Surface)).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(19.dp)).onFocusChanged { focused = it.isFocused }.tvAction(onSelect).padding(horizontal = 15.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.height(38.dp).clip(RoundedCornerShape(19.dp)).then(if (selected) Modifier.background(Brush.horizontalGradient(listOf(GoldStart, GoldEnd))) else Modifier.background(Surface)).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(19.dp)).onFocusChanged { focused = it.isFocused }.tvAction(onSelect).padding(horizontal = 15.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(name, color = if (selected) Color(0xFF10151C) else White, fontSize = 11.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
     }
 }
