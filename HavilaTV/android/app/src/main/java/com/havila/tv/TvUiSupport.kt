@@ -78,9 +78,6 @@ fun SettingsContent() {
 val featuredMozambiqueIds = setOf("tvm", "stv", "miramar")
 
 fun localLogoResource(channelId: String): Int? = when (channelId.lowercase()) {
-    "tvm", "tvm-mozambique" -> R.drawable.tvm_logo
-    "stv", "stv-mozambique" -> R.drawable.stv_logo
-    "miramar", "miramar-tv" -> R.drawable.miramar_logo
     "dw-english" -> R.drawable.dw_logo
     "goodnews-tv" -> R.drawable.goodnews_tv_logo
     "good-news-world" -> R.drawable.goodnews_world_tv_logo
@@ -89,6 +86,6 @@ fun localLogoResource(channelId: String): Int? = when (channelId.lowercase()) {
     "christ-tv" -> R.drawable.christ_tv_logo
     "emanuel-tv" -> R.drawable.emanuel_tv_logo
     "gospel-channel" -> R.drawable.gospel_channel_logo
-    "supersport", "supersport-1", "supersport-football" -> R.drawable.supersport_logo
+    "miramar", "miramar-tv" -> R.drawable.miramar_logo
     else -> null
 }
