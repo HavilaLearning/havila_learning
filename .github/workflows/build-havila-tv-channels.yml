@@ -27,7 +27,8 @@ jobs:
 
       - name: Verify project files
         run: |
-          test -f ./gradlew
+          test -f ./settings.gradle.kts
+          test -f ./build.gradle.kts
           test -f ./app/build.gradle.kts
           test -f ./app/src/main/java/com/havila/tv/MainActivity.kt
           test -f ./app/src/main/java/com/havila/tv/PlayerActivity.kt
