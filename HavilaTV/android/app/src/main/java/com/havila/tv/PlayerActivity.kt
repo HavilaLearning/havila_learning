@@ -1,5 +1,6 @@
 package com.havila.tv
 
+import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
@@ -10,7 +11,6 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.ComponentActivity
-import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -48,9 +48,9 @@ class PlayerActivity : ComponentActivity() {
         openRequestedChannel(intent)
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if (intent == null || isFinishing || isDestroyed) return
+        if (isFinishing || isDestroyed) return
         setIntent(intent)
         openRequestedChannel(intent)
     }
@@ -179,7 +179,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     private fun createMediaSource(item: MediaItem, factory: DefaultHttpDataSource.Factory): MediaSource {
-        return when (item.mimeType) {
+        return when (item.localConfiguration?.mimeType) {
             MimeTypes.APPLICATION_M3U8 -> HlsMediaSource.Factory(factory).createMediaSource(item)
             MimeTypes.APPLICATION_MPD -> DashMediaSource.Factory(factory).createMediaSource(item)
             else -> androidx.media3.exoplayer.source.DefaultMediaSourceFactory(factory).createMediaSource(item)
