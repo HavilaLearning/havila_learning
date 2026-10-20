@@ -8,7 +8,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester as composeFocusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.draw.clip as composeClip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Home
@@ -16,12 +18,24 @@ import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Tv
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.Text
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 fun ComponentActivity.setContent(content: @Composable () -> Unit) {
     activitySetContent { content() }
 }
 
 fun Modifier.focusRequester(requester: FocusRequester): Modifier = composeFocusRequester(requester)
+
+fun Modifier.clip(shape: Shape): Modifier = composeClip(this, shape)
+
+typealias CategoryDefinition = CategoryDef
 
 data class HeroSlide(val title: String, val imageRes: Int)
 
@@ -55,6 +69,22 @@ val categoryDefinitions = listOf(
     CategoryDef("Música e Entretenimento", listOf("Music", "Entertainment", "Comedy", "Interactive", "Relax"), Icons.Default.MusicNote, categoryArt(Color(0xFF183C49), Color(0xFF2B7181))),
     CategoryDef("Família e Cultura", listOf("Family", "Culture", "Documentary", "Education", "Science", "Lifestyle", "Cooking", "Travel", "Shop"), Icons.Default.GridView, categoryArt(Color(0xFF3D3220), Color(0xFF6B5630)))
 )
+
+@Composable
+fun FavoritesContent() {
+    Column(Modifier.fillMaxWidth().padding(20.dp)) {
+        Text("FAVORITOS", color = Color.White, fontSize = 16.sp)
+        Text("Os seus canais favoritos aparecerão aqui.", color = Color(0xFF9AA8B7), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+    }
+}
+
+@Composable
+fun SettingsContent() {
+    Column(Modifier.fillMaxWidth().padding(20.dp)) {
+        Text("CONFIGURAÇÕES", color = Color.White, fontSize = 16.sp)
+        Text("Configurações da Havila TV.", color = Color(0xFF9AA8B7), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+    }
+}
 
 /** Channels from the supplied list that are identified as Mozambique entries. */
 val featuredMozambiqueIds = setOf(
