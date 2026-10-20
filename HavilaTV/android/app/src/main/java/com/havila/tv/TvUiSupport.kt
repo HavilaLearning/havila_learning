@@ -49,10 +49,12 @@ val heroSlides = listOf(
 
 private fun categoryArt(start: Color, end: Color): Brush = Brush.linearGradient(listOf(start, end))
 
+// Full Havila TV category structure. The order is intentional: Notícias first,
+// followed by the remaining family-oriented categories requested for the TV UI.
 val categoryDefinitions = listOf(
     CategoryDef("Notícias", listOf("News", "Weather", "Business", "Legislative", "Public", "General"), "TV", categoryArt(Color(0xFF17324D), Color(0xFF245D79))),
-    CategoryDef("Desporto", listOf("Sports", "Auto", "Outdoor"), "⚽", categoryArt(Color(0xFF183E2B), Color(0xFF28704A))),
     CategoryDef("Gospel", listOf("Religious"), "✝", categoryArt(Color(0xFF382A58), Color(0xFF60448A))),
+    CategoryDef("Desporto", listOf("Sports", "Auto", "Outdoor"), "⚽", categoryArt(Color(0xFF183E2B), Color(0xFF28704A))),
     CategoryDef("Filmes e Séries", listOf("Movies", "Series", "Classic"), "FILME", categoryArt(Color(0xFF47262B), Color(0xFF803B43))),
     CategoryDef("Havila Kids", listOf("Kids", "Animation"), "KIDS", categoryArt(Color(0xFF5A4218), Color(0xFF92702A))),
     CategoryDef("Música e Entretenimento", listOf("Music", "Entertainment", "Comedy", "Interactive", "Relax"), "♫", categoryArt(Color(0xFF183C49), Color(0xFF2B7181))),
