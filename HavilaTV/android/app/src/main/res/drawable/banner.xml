@@ -1,21 +1,17 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <shape android:shape="rectangle">
-            <gradient android:angle="0" android:startColor="#070B14" android:centerColor="#0F1624" android:endColor="#18263A" />
+            <gradient android:angle="0" android:startColor="#061126" android:centerColor="#0A2A5A" android:endColor="#07152D" />
             <corners android:radius="10dp" />
         </shape>
     </item>
-    <item android:left="28dp" android:top="26dp" android:right="28dp" android:bottom="26dp">
+    <item android:left="8dp" android:top="8dp" android:right="8dp" android:bottom="8dp">
         <shape android:shape="rectangle">
-            <stroke android:width="2dp" android:color="#C8901E" />
-            <corners android:radius="8dp" />
-            <solid android:color="#120F0A00" />
+            <stroke android:width="2dp" android:color="#F2C14E" />
+            <corners android:radius="9dp" />
         </shape>
     </item>
-    <item android:left="62dp" android:top="43dp" android:right="62dp" android:bottom="43dp">
-        <shape android:shape="rectangle">
-            <solid android:color="#F2C14E" />
-            <corners android:radius="3dp" />
-        </shape>
+    <item android:left="92dp" android:top="28dp" android:right="92dp" android:bottom="28dp">
+        <bitmap android:src="@drawable/havila_tv_icon" android:gravity="fill" />
     </item>
 </layer-list>
