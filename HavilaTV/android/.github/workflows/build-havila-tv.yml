@@ -21,6 +21,8 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: gradle
+      - name: Apply TV UI fixes
+        run: python3 apply_tv_ui_fixes.py
       - name: Make Gradle executable
         run: chmod +x ./gradlew
       - name: Build debug APK
@@ -29,5 +31,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: havila-tv-debug-apk
-          path: HavilaTV/android/app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
