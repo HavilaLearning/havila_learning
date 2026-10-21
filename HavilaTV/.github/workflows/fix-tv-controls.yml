@@ -1,0 +1,145 @@
+name: Fix Havila TV controls
+
+on:
+  push:
+    paths:
+      - 'HavilaTV/.github/workflows/fix-tv-controls.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-controls:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix-havila-tv-channels
+          fetch-depth: 0
+
+      - name: Patch search favorites settings
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          main = Path('HavilaTV/android/app/src/main/java/com/havila/tv/MainActivity.kt')
+          player = Path('HavilaTV/android/app/src/main/java/com/havila/tv/PlayerActivity.kt')
+          s = main.read_text(encoding='utf-8')
+          p = player.read_text(encoding='utf-8')
+
+          # Settings constants
+          s = s.replace(
+              'private const val FAVORITES_KEY = "favorite_channel_ids"',
+              'private const val FAVORITES_KEY = "favorite_channel_ids"\nprivate const val AUTOPLAY_KEY = "autoplay"\nprivate const val LIVE_BADGE_KEY = "show_live_badge"'
+          )
+
+          # Top action focus and settings wiring
+          s = s.replace(
+              'var clock by remember { mutableStateOf(currentTime()) }\n    val menuRequester = remember { FocusRequester() }',
+              'var clock by remember { mutableStateOf(currentTime()) }\n    var searchFocus by remember { mutableStateOf(false) }\n    val menuRequester = remember { FocusRequester() }\n    val searchRequester = remember { FocusRequester() }\n    val settingsRequester = remember { FocusRequester() }'
+          )
+          s = s.replace(
+              'TopActions(clock, topBarHeight, contentPadding, { showSearch = true }, { selectedMenu = 4 })',
+              'TopActions(clock, topBarHeight, contentPadding, searchRequester, settingsRequester, { showSearch = true }, { selectedMenu = 4 })'
+          )
+          s = s.replace(
+              'if (showSearch) SearchDialog(context) { showSearch = false }',
+              'if (showSearch) SearchDialog(context, searchRequester) { showSearch = false }'
+          )
+
+          # Replace TopActions with explicit TV focus targets.
+          old = '''@Composable\nprivate fun TopActions(time: String, height: Dp, horizontalPadding: Dp, onSearch: () -> Unit, onSettings: () -> Unit) {\n    Row(Modifier.fillMaxWidth().height(height).padding(horizontal = horizontalPadding), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {\n        Row(Modifier.tvAction(onSearch), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Search, "Pesquisar", tint = White, modifier = Modifier.width(22.dp)); Text("Pesquisar", color = White, fontSize = 14.sp, modifier = Modifier.padding(start = 6.dp, end = 18.dp)) }\n        Row(Modifier.tvAction(onSettings), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Settings, "Configurações", tint = White, modifier = Modifier.width(23.dp)); Text("Configurações", color = White, fontSize = 14.sp, modifier = Modifier.padding(start = 6.dp, end = 20.dp)) }\n        Text(time, color = White, fontSize = 16.sp)\n    }\n}'''
+          new = '''@Composable\nprivate fun TopActions(time: String, height: Dp, horizontalPadding: Dp, searchRequester: FocusRequester, settingsRequester: FocusRequester, onSearch: () -> Unit, onSettings: () -> Unit) {\n    Row(Modifier.fillMaxWidth().height(height).padding(horizontal = horizontalPadding), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {\n        Row(Modifier.focusRequester(searchRequester).tvAction(onSearch).onFocusChanged { }, verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Search, "Pesquisar", tint = White, modifier = Modifier.width(22.dp)); Text("Pesquisar", color = White, fontSize = 14.sp, modifier = Modifier.padding(start = 6.dp, end = 18.dp)) }\n        Row(Modifier.focusRequester(settingsRequester).tvAction(onSettings), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Settings, "Configurações", tint = White, modifier = Modifier.width(23.dp)); Text("Configurações", color = White, fontSize = 14.sp, modifier = Modifier.padding(start = 6.dp, end = 20.dp)) }\n        Text(time, color = White, fontSize = 16.sp)\n    }\n}'''
+          if old not in s:
+              raise SystemExit('TopActions block not found')
+          s = s.replace(old, new)
+
+          # Remove unused state introduced only for patch bookkeeping.
+          s = s.replace('    var searchFocus by remember { mutableStateOf(false) }\n', '')
+
+          # Featured card: make favorite a distinct TV focus target.
+          old = '''@Composable\nprivate fun FeaturedChannelCard(channel: Channel, context: Context, menuRequester: FocusRequester) {\n    var focused by remember { mutableStateOf(false) }\n    val isFavorite = rememberFavoriteState(channel.id)\n    Row(Modifier.width(215.dp).height(82.dp).clip(RoundedCornerShape(12.dp)).background(Surface.copy(alpha = .92f)).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(12.dp)).onFocusChanged { focused = it.isFocused }.tvAction { if (hasPlayableSource(channel)) openChannel(context, channel) }.focusProperties { left = menuRequester }, verticalAlignment = Alignment.CenterVertically) {\n        ChannelLogo(channel, Modifier.width(86.dp).fillMaxHeight().padding(6.dp))\n        Column(Modifier.padding(start = 8.dp, end = 2.dp).weight(1f)) { Text(channel.name, color = White, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 2); Text("AO VIVO", color = LiveRed, fontSize = 8.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 3.dp)) }\n        IconButton(onClick = { FavoritesStore.toggle(context, channel.id) }, modifier = Modifier.size(38.dp)) { Icon(if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, "Favorito", tint = if (isFavorite) LiveRed else White.copy(alpha = .72f)) }\n    }\n}'''
+          new = '''@Composable\nprivate fun FeaturedChannelCard(channel: Channel, context: Context, menuRequester: FocusRequester) {\n    var focused by remember { mutableStateOf(false) }\n    var favoriteFocused by remember { mutableStateOf(false) }\n    val isFavorite = rememberFavoriteState(channel.id)\n    val showLiveBadge = rememberLiveBadgeState()\n    Row(Modifier.width(215.dp).height(82.dp).clip(RoundedCornerShape(12.dp)).background(Surface.copy(alpha = .92f)).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(12.dp)).onFocusChanged { focused = it.isFocused }.tvAction { if (hasPlayableSource(channel)) openChannel(context, channel) }.focusProperties { left = menuRequester }, verticalAlignment = Alignment.CenterVertically) {\n        ChannelLogo(channel, Modifier.width(86.dp).fillMaxHeight().padding(6.dp))\n        Column(Modifier.padding(start = 8.dp, end = 2.dp).weight(1f)) { Text(channel.name, color = White, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 2); if (showLiveBadge) Text("AO VIVO", color = LiveRed, fontSize = 8.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 3.dp)) }\n        IconButton(onClick = { FavoritesStore.toggle(context, channel.id) }, modifier = Modifier.size(38.dp).onFocusChanged { favoriteFocused = it.isFocused }.border(if (favoriteFocused) 2.dp else 0.dp, if (favoriteFocused) FocusGold else Color.Transparent, RoundedCornerShape(50))) { Icon(if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, "Favorito", tint = if (isFavorite) LiveRed else White.copy(alpha = .72f)) }\n    }\n}'''
+          if old not in s:
+              raise SystemExit('FeaturedChannelCard block not found')
+          s = s.replace(old, new)
+
+          # Grid card: distinct favorite focus and configurable LIVE badge.
+          old_start = '@Composable\nprivate fun ChannelGridCard(channel: Channel, context: Context, firstRequester: FocusRequester? = null, isFirst: Boolean = false) {'
+          start = s.index(old_start)
+          end = s.index('\n}\n\n@Composable private fun ChannelLogo', start) + 2
+          old = s[start:end]
+          new = '''@Composable\nprivate fun ChannelGridCard(channel: Channel, context: Context, firstRequester: FocusRequester? = null, isFirst: Boolean = false) {\n    var focused by remember { mutableStateOf(false) }\n    var favoriteFocused by remember { mutableStateOf(false) }\n    val isFavorite = rememberFavoriteState(channel.id)\n    val showLiveBadge = rememberLiveBadgeState()\n    Column(Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(14.dp)).background(if (focused) Color(0xFF172333).copy(alpha = .96f) else Surface.copy(alpha = .92f)).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(14.dp)).onFocusChanged { focused = it.isFocused }.then(if (isFirst && firstRequester != null) Modifier.focusRequester(firstRequester) else Modifier).tvAction { if (hasPlayableSource(channel)) openChannel(context, channel) }.padding(7.dp)) {\n        Row(Modifier.fillMaxWidth().height(88.dp), verticalAlignment = Alignment.CenterVertically) {\n            ChannelLogo(channel, Modifier.weight(1f).fillMaxHeight())\n            IconButton(onClick = { FavoritesStore.toggle(context, channel.id) }, modifier = Modifier.size(40.dp).onFocusChanged { favoriteFocused = it.isFocused }.border(if (favoriteFocused) 2.dp else 0.dp, if (favoriteFocused) FocusGold else Color.Transparent, RoundedCornerShape(50))) { Icon(if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, "Favorito", tint = if (isFavorite) LiveRed else White.copy(alpha = .72f)) }\n        }\n        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {\n            Column(Modifier.weight(1f)) { Text(channel.name, color = White, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1); Text(channel.description.ifBlank { displaySubcategory(channel.subcategory) }, color = Muted, fontSize = 9.sp, maxLines = 1, modifier = Modifier.padding(top = 2.dp)) }\n            if (showLiveBadge) Text("LIVE", color = LiveRed, fontSize = 8.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 5.dp))\n        }\n    }\n}'''
+          s = s[:start] + new + s[end:]
+
+          # Search dialog: explicit initial focus and TV-friendly result focus.
+          old = '''@Composable\nprivate fun SearchDialog(context: Context, onDismiss: () -> Unit) {\n    var query by remember { mutableStateOf("") }\n    val allChannels = remember { ChannelRepository.channels.filter(::hasPlayableSource) }\n    val results = remember(query, allChannels) {\n        if (query.isBlank()) allChannels else allChannels.filter { it.name.contains(query.trim(), true) || it.category.contains(query.trim(), true) || it.subcategory.contains(query.trim(), true) }\n    }\n    AlertDialog(onDismissRequest = onDismiss, title = { Text("Pesquisar canais", fontWeight = FontWeight.Bold) }, text = {\n        Column(Modifier.fillMaxWidth().heightIn(max = 520.dp)) {\n            OutlinedTextField(value = query, onValueChange = { query = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Nome do canal") }, leadingIcon = { Icon(Icons.Default.Search, null) })\n            Spacer(Modifier.height(10.dp)); Text("${results.size} resultados", color = Muted, fontSize = 11.sp); Spacer(Modifier.height(6.dp))\n            LazyVerticalGrid(columns = GridCells.Adaptive(minSize = 180.dp), modifier = Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { items(results, key = { it.id }) { channel -> SearchResultCard(channel) { openChannel(context, channel); onDismiss() } } }\n        }\n    }, confirmButton = { TextButton(onClick = onDismiss) { Text("Fechar") } })\n}'''
+          new = '''@Composable\nprivate fun SearchDialog(context: Context, searchRequester: FocusRequester, onDismiss: () -> Unit) {\n    var query by remember { mutableStateOf("") }\n    val allChannels = remember { ChannelRepository.channels.filter(::hasPlayableSource) }\n    val results = remember(query, allChannels) {\n        val q = query.trim()\n        if (q.isBlank()) allChannels else allChannels.filter { it.name.contains(q, true) || it.category.contains(q, true) || it.subcategory.contains(q, true) }\n    }\n    val firstResultRequester = remember { FocusRequester() }\n    LaunchedEffect(Unit) { awaitFrame(); runCatching { searchRequester.requestFocus() } }\n    AlertDialog(onDismissRequest = onDismiss, title = { Text("Pesquisar canais", fontWeight = FontWeight.Bold) }, text = {\n        Column(Modifier.fillMaxWidth().heightIn(max = 520.dp)) {\n            OutlinedTextField(value = query, onValueChange = { query = it }, modifier = Modifier.fillMaxWidth().focusRequester(searchRequester), singleLine = true, label = { Text("Nome do canal") }, leadingIcon = { Icon(Icons.Default.Search, null) })\n            Spacer(Modifier.height(10.dp)); Text("${results.size} resultados", color = Muted, fontSize = 11.sp); Spacer(Modifier.height(6.dp))\n            LazyVerticalGrid(columns = GridCells.Adaptive(minSize = 180.dp), modifier = Modifier.fillMaxWidth().weight(1f).focusGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { items(results, key = { it.id }) { channel -> SearchResultCard(channel, firstResultRequester, channel.id == results.firstOrNull()?.id) { openChannel(context, channel); onDismiss() } } }\n        }\n    }, confirmButton = { TextButton(onClick = onDismiss) { Text("Fechar") } })\n}'''
+          if old not in s:
+              raise SystemExit('SearchDialog block not found')
+          s = s.replace(old, new)
+
+          old = '''@Composable private fun SearchResultCard(channel: Channel, onOpen: () -> Unit) {\n    var focused by remember { mutableStateOf(false) }\n    Row(Modifier.fillMaxWidth().height(62.dp).clip(RoundedCornerShape(10.dp)).background(Surface).border(if (focused) 2.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(10.dp)).onFocusChanged { focused = it.isFocused }.tvAction(onOpen), verticalAlignment = Alignment.CenterVertically) {\n        ChannelLogo(channel, Modifier.width(60.dp).fillMaxHeight().padding(5.dp)); Text(channel.name, color = White, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 2, modifier = Modifier.padding(horizontal = 7.dp))\n    }\n}'''
+          new = '''@Composable private fun SearchResultCard(channel: Channel, firstRequester: FocusRequester, isFirst: Boolean, onOpen: () -> Unit) {\n    var focused by remember { mutableStateOf(false) }\n    Row(Modifier.fillMaxWidth().height(62.dp).then(if (isFirst) Modifier.focusRequester(firstRequester) else Modifier).clip(RoundedCornerShape(10.dp)).background(Surface).border(if (focused) 2.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(10.dp)).onFocusChanged { focused = it.isFocused }.tvAction(onOpen), verticalAlignment = Alignment.CenterVertically) {\n        ChannelLogo(channel, Modifier.width(60.dp).fillMaxHeight().padding(5.dp)); Text(channel.name, color = White, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 2, modifier = Modifier.padding(horizontal = 7.dp))\n    }\n}'''
+          if old not in s:
+              raise SystemExit('SearchResultCard block not found')
+          s = s.replace(old, new)
+
+          # Favorites: auto-focus first favorite and keep favorite action independent.
+          old = '''@Composable\nprivate fun FavoritesContent(context: Context) {\n    val version = FavoritesStore.version\n    val ids = remember(version) { favoriteIds(context) }\n    val channels = remember(version) { ChannelRepository.channels.filter { it.id in ids && hasPlayableSource(it) } }\n    Column(Modifier.fillMaxSize().padding(start = 20.dp, top = 8.dp)) {\n        Row(verticalAlignment = Alignment.CenterVertically) { SectionTitle("FAVORITOS"); Spacer(Modifier.width(10.dp)); Text("${channels.size} canais", color = Muted, fontSize = 12.sp) }\n        if (channels.isEmpty()) {\n            Text("Ainda não adicionou canais aos favoritos.", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(top = 12.dp))\n        } else {\n            LazyVerticalGrid(columns = GridCells.Adaptive(minSize = 190.dp), modifier = Modifier.fillMaxSize().focusGroup(), contentPadding = PaddingValues(top = 2.dp, bottom = 20.dp, end = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { items(channels, key = { it.id }) { channel -> ChannelGridCard(channel, context) } }\n        }\n    }\n}'''
+          new = '''@Composable\nprivate fun FavoritesContent(context: Context) {\n    val version = FavoritesStore.version\n    val ids = remember(version) { favoriteIds(context) }\n    val channels = remember(version) { ChannelRepository.channels.filter { it.id in ids && hasPlayableSource(it) } }\n    val firstFavoriteRequester = remember { FocusRequester() }\n    LaunchedEffect(version, channels) { awaitFrame(); awaitFrame(); runCatching { if (channels.isNotEmpty()) firstFavoriteRequester.requestFocus() } }\n    Column(Modifier.fillMaxSize().padding(start = 20.dp, top = 8.dp)) {\n        Row(verticalAlignment = Alignment.CenterVertically) { SectionTitle("FAVORITOS"); Spacer(Modifier.width(10.dp)); Text("${channels.size} canais", color = Muted, fontSize = 12.sp) }\n        if (channels.isEmpty()) {\n            Text("Ainda não adicionou canais aos favoritos.", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(top = 12.dp))\n        } else {\n            LazyVerticalGrid(columns = GridCells.Adaptive(minSize = 190.dp), modifier = Modifier.fillMaxSize().focusGroup(), contentPadding = PaddingValues(top = 2.dp, bottom = 20.dp, end = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { items(channels, key = { it.id }) { channel -> ChannelGridCard(channel, context, firstFavoriteRequester, channel.id == channels.firstOrNull()?.id) } }\n        }\n    }\n}'''
+          if old not in s:
+              raise SystemExit('FavoritesContent block not found')
+          s = s.replace(old, new)
+
+          # Settings: persistent values + real TV focus + visible focus state.
+          old = '''@Composable\nprivate fun SettingsContent() {\n    var autoplay by remember { mutableStateOf(true) }\n    var showLiveBadge by remember { mutableStateOf(true) }\n    Column(Modifier.fillMaxSize().padding(start = 20.dp, top = 8.dp, end = 20.dp)) {\n        SectionTitle("CONFIGURAÇÕES")\n        SettingsRow("Reprodução automática", "Iniciar o canal imediatamente ao selecionar.", autoplay) { autoplay = it }\n        SettingsRow("Indicador AO VIVO", "Mostrar o estado LIVE nos cartões dos canais.", showLiveBadge) { showLiveBadge = it }\n    }\n}\n\n@Composable\nprivate fun SettingsRow(title: String, description: String, checked: Boolean, onChecked: (Boolean) -> Unit) {\n    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp).clip(RoundedCornerShape(12.dp)).background(Surface).padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {\n        Column(Modifier.weight(1f)) { Text(title, color = White, fontSize = 13.sp, fontWeight = FontWeight.Bold); Text(description, color = Muted, fontSize = 10.sp, modifier = Modifier.padding(top = 3.dp)) }\n        Switch(checked = checked, onCheckedChange = onChecked)\n    }\n}'''
+          new = '''@Composable\nprivate fun SettingsContent() {\n    val context = LocalContext.current\n    var autoplay by remember { mutableStateOf(getAutoplay(context)) }\n    var showLiveBadge by remember { mutableStateOf(getShowLiveBadge(context)) }\n    val autoplayRequester = remember { FocusRequester() }\n    val liveBadgeRequester = remember { FocusRequester() }\n    LaunchedEffect(Unit) { awaitFrame(); runCatching { autoplayRequester.requestFocus() } }\n    Column(Modifier.fillMaxSize().padding(start = 20.dp, top = 8.dp, end = 20.dp)) {\n        SectionTitle("CONFIGURAÇÕES")\n        SettingsRow("Reprodução automática", "Iniciar o canal imediatamente ao selecionar.", autoplay, autoplayRequester) { value -> autoplay = value; saveAutoplay(context, value) }\n        SettingsRow("Indicador AO VIVO", "Mostrar o estado LIVE nos cartões dos canais.", showLiveBadge, liveBadgeRequester) { value -> showLiveBadge = value; saveShowLiveBadge(context, value) }\n    }\n}\n\n@Composable\nprivate fun SettingsRow(title: String, description: String, checked: Boolean, requester: FocusRequester, onChecked: (Boolean) -> Unit) {\n    var focused by remember { mutableStateOf(false) }\n    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp).clip(RoundedCornerShape(12.dp)).background(if (focused) Color(0xFF172333) else Surface).border(if (focused) 2.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(12.dp)).padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {\n        Column(Modifier.weight(1f)) { Text(title, color = White, fontSize = 13.sp, fontWeight = FontWeight.Bold); Text(description, color = Muted, fontSize = 10.sp, modifier = Modifier.padding(top = 3.dp)) }\n        Switch(checked = checked, onCheckedChange = onChecked, modifier = Modifier.focusRequester(requester).onFocusChanged { focused = it.isFocused })\n    }\n}'''
+          if old not in s:
+              raise SystemExit('Settings block not found')
+          s = s.replace(old, new)
+
+          # Replace openChannel to carry persisted autoplay into PlayerActivity.
+          old = '''private fun openChannel(context: Context, channel: Channel) {\n    val intent = Intent(context, PlayerActivity::class.java).apply {\n        addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)\n        putExtra("channelId", channel.id)\n        putExtra("channelName", channel.name)\n        channel.streamUrl?.trim()?.takeIf { it.isNotEmpty() }?.let { putExtra("streamUrl", it) }\n    }\n    context.startActivity(intent)\n}'''
+          new = '''private fun openChannel(context: Context, channel: Channel) {\n    val intent = Intent(context, PlayerActivity::class.java).apply {\n        addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)\n        putExtra("channelId", channel.id)\n        putExtra("channelName", channel.name)\n        putExtra("autoplay", getAutoplay(context))\n        channel.streamUrl?.trim()?.takeIf { it.isNotEmpty() }?.let { putExtra("streamUrl", it) }\n    }\n    context.startActivity(intent)\n}'''
+          if old not in s:
+              raise SystemExit('openChannel block not found')
+          s = s.replace(old, new)
+
+          # Settings helpers.
+          marker = 'private fun favoriteIds(context: Context): Set<String> ='
+          helpers = '''private fun getAutoplay(context: Context): Boolean = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(AUTOPLAY_KEY, true)\nprivate fun saveAutoplay(context: Context, value: Boolean) { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(AUTOPLAY_KEY, value).apply() }\nprivate fun getShowLiveBadge(context: Context): Boolean = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(LIVE_BADGE_KEY, true)\nprivate fun saveShowLiveBadge(context: Context, value: Boolean) { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(LIVE_BADGE_KEY, value).apply() }\n\n@Composable\nprivate fun rememberLiveBadgeState(): Boolean {\n    val context = LocalContext.current\n    return remember { getShowLiveBadge(context) }\n}\n\n'''
+          if marker not in s:
+              raise SystemExit('settings helper marker not found')
+          s = s.replace(marker, helpers + marker, 1)
+
+          # Player: honor autoplay preference passed by MainActivity.
+          p = p.replace(
+              'private var currentStreamUrl: String? = null',
+              'private var currentStreamUrl: String? = null\n    private var autoplay = true'
+          )
+          p = p.replace(
+              'val initialName = request.getStringExtra("channelName")?.trim().takeUnless { it.isNullOrBlank() } ?: "Canal"',
+              'val initialName = request.getStringExtra("channelName")?.trim().takeUnless { it.isNullOrBlank() } ?: "Canal"\n        autoplay = request.getBooleanExtra("autoplay", true)'
+          )
+          p = p.replace('newPlayer.playWhenReady = true', 'newPlayer.playWhenReady = autoplay')
+
+          main.write_text(s, encoding='utf-8')
+          player.write_text(p, encoding='utf-8')
+
+          print('Patched MainActivity.kt and PlayerActivity.kt')
+
+      - name: Commit patched controls
+        shell: bash
+        run: |
+          git config user.name "Havila Learning Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add HavilaTV/android/app/src/main/java/com/havila/tv/MainActivity.kt HavilaTV/android/app/src/main/java/com/havila/tv/PlayerActivity.kt
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Fix TV search favorites and settings"
+            git push origin HEAD:fix-havila-tv-channels
+          fi
