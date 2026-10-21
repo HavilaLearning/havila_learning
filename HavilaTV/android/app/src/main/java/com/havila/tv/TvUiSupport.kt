@@ -49,33 +49,15 @@ val heroSlides = listOf(
 
 private fun categoryArt(start: Color, end: Color): Brush = Brush.linearGradient(listOf(start, end))
 
-// Full Havila TV category structure. The order is intentional: Notícias first,
-// followed by the remaining family-oriented categories requested for the TV UI.
 val categoryDefinitions = listOf(
-    CategoryDef("Notícias", listOf("News", "Weather", "Business", "Legislative", "Public", "General"), "TV", categoryArt(Color(0xFF17324D), Color(0xFF245D79))),
-    CategoryDef("Gospel", listOf("Religious"), "✝", categoryArt(Color(0xFF382A58), Color(0xFF60448A))),
+    CategoryDef("Notícias", listOf("News", "Weather", "Business", "Legislative", "Public", "General"), "📰", categoryArt(Color(0xFF17324D), Color(0xFF245D79))),
     CategoryDef("Desporto", listOf("Sports", "Auto", "Outdoor"), "⚽", categoryArt(Color(0xFF183E2B), Color(0xFF28704A))),
-    CategoryDef("Filmes e Séries", listOf("Movies", "Series", "Classic"), "FILME", categoryArt(Color(0xFF47262B), Color(0xFF803B43))),
-    CategoryDef("Havila Kids", listOf("Kids", "Animation"), "KIDS", categoryArt(Color(0xFF5A4218), Color(0xFF92702A))),
-    CategoryDef("Música e Entretenimento", listOf("Music", "Entertainment", "Comedy", "Interactive", "Relax"), "♫", categoryArt(Color(0xFF183C49), Color(0xFF2B7181))),
-    CategoryDef("Família e Cultura", listOf("Family", "Culture", "Documentary", "Education", "Science", "Lifestyle", "Cooking", "Travel", "Shop"), "FAM", categoryArt(Color(0xFF3D3220), Color(0xFF6B5630)))
+    CategoryDef("Gospel", listOf("Religious"), "✝", categoryArt(Color(0xFF382A58), Color(0xFF60448A))),
+    CategoryDef("Filmes", listOf("Movies", "Series", "Classic"), "🎬", categoryArt(Color(0xFF47262B), Color(0xFF803B43))),
+    CategoryDef("Música", listOf("Music", "Entertainment", "Comedy", "Interactive", "Relax"), "🎵", categoryArt(Color(0xFF183C49), Color(0xFF2B7181))),
+    CategoryDef("Havila Kids", listOf("Kids", "Animation"), "👧", categoryArt(Color(0xFF5A4218), Color(0xFF92702A))),
+    CategoryDef("Família", listOf("Family", "Culture", "Documentary", "Education", "Science", "Lifestyle", "Cooking", "Travel", "Shop"), "👨‍👩‍👧", categoryArt(Color(0xFF3D3220), Color(0xFF6B5630)))
 )
-
-@Composable
-fun FavoritesContent() {
-    Column(Modifier.fillMaxWidth().padding(20.dp)) {
-        Text("FAVORITOS", color = Color.White, fontSize = 16.sp)
-        Text("Os seus canais favoritos aparecerão aqui.", color = Color(0xFF9AA8B7), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
-    }
-}
-
-@Composable
-fun SettingsContent() {
-    Column(Modifier.fillMaxWidth().padding(20.dp)) {
-        Text("CONFIGURAÇÕES", color = Color.White, fontSize = 16.sp)
-        Text("Configurações da Havila TV.", color = Color(0xFF9AA8B7), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
-    }
-}
 
 val featuredMozambiqueIds = setOf("tvm", "stv", "miramar")
 
