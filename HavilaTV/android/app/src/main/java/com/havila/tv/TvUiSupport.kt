@@ -32,7 +32,8 @@ data class CategoryDef(
     val name: String,
     val subcategories: List<String>,
     val icon: String,
-    val art: Brush
+    val art: Brush,
+    val logoRes: Int
 )
 
 val heroSlides = listOf(
@@ -50,13 +51,13 @@ val heroSlides = listOf(
 private fun categoryArt(start: Color, end: Color): Brush = Brush.linearGradient(listOf(start, end))
 
 val categoryDefinitions = listOf(
-    CategoryDef("Notícias", listOf("News", "Weather", "Business", "Legislative", "Public", "General"), "📰", categoryArt(Color(0xFF17324D), Color(0xFF245D79))),
-    CategoryDef("Desporto", listOf("Sports", "Auto", "Outdoor"), "⚽", categoryArt(Color(0xFF183E2B), Color(0xFF28704A))),
-    CategoryDef("Gospel", listOf("Religious"), "✝", categoryArt(Color(0xFF382A58), Color(0xFF60448A))),
-    CategoryDef("Filmes", listOf("Movies", "Series", "Classic"), "🎬", categoryArt(Color(0xFF47262B), Color(0xFF803B43))),
-    CategoryDef("Música", listOf("Music", "Entertainment", "Comedy", "Interactive", "Relax"), "🎵", categoryArt(Color(0xFF183C49), Color(0xFF2B7181))),
-    CategoryDef("Havila Kids", listOf("Kids", "Animation"), "👧", categoryArt(Color(0xFF5A4218), Color(0xFF92702A))),
-    CategoryDef("Família", listOf("Family", "Culture", "Documentary", "Education", "Science", "Lifestyle", "Cooking", "Travel", "Shop"), "👨‍👩‍👧", categoryArt(Color(0xFF3D3220), Color(0xFF6B5630)))
+    CategoryDef("Notícias", listOf("News", "Weather", "Business", "Legislative", "Public", "General"), "📰", categoryArt(Color(0xFF17324D), Color(0xFF245D79)), R.drawable.noticias),
+    CategoryDef("Desporto", listOf("Sports", "Auto", "Outdoor"), "⚽", categoryArt(Color(0xFF183E2B), Color(0xFF28704A)), R.drawable.desporto),
+    CategoryDef("Gospel", listOf("Religious"), "✝", categoryArt(Color(0xFF382A58), Color(0xFF60448A)), R.drawable.gospel),
+    CategoryDef("Filmes", listOf("Movies", "Series", "Classic"), "🎬", categoryArt(Color(0xFF47262B), Color(0xFF803B43)), R.drawable.filmes),
+    CategoryDef("Música", listOf("Music", "Entertainment", "Comedy", "Interactive", "Relax"), "🎵", categoryArt(Color(0xFF183C49), Color(0xFF2B7181)), R.drawable.musica),
+    CategoryDef("Havila Kids", listOf("Kids", "Animation"), "👧", categoryArt(Color(0xFF5A4218), Color(0xFF92702A)), R.drawable.havila_kids),
+    CategoryDef("Família", listOf("Family", "Culture", "Documentary", "Education", "Science", "Lifestyle", "Cooking", "Travel", "Shop"), "👨‍👩‍👧", categoryArt(Color(0xFF3D3220), Color(0xFF6B5630)), R.drawable.familia)
 )
 
 val featuredMozambiqueIds = setOf("tvm", "stv", "miramar")
