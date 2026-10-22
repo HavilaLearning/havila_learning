@@ -262,7 +262,7 @@ private fun CategoryContent(context: Context, menuRequester: FocusRequester, ini
 private fun CategoryCard(category: CategoryDefinition, selected: Boolean, onSelect: () -> Unit, menuRequester: FocusRequester) {
     var focused by remember { mutableStateOf(false) }
     Row(Modifier.width(190.dp).height(62.dp).clip(RoundedCornerShape(12.dp)).then(if (selected) Modifier.background(Brush.horizontalGradient(listOf(GoldStart, GoldEnd))) else Modifier.background(category.art)).border(if (focused) 3.dp else 1.dp, if (focused) FocusGold else CardBorder, RoundedCornerShape(12.dp)).onFocusChanged { focused = it.isFocused }.tvAction(onSelect).focusProperties { left = menuRequester }, verticalAlignment = Alignment.CenterVertically) {
-        Text(category.icon, color = if (selected) Color(0xFF10151C) else White, fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 13.dp))
+        Image(painter = painterResource(id = category.logoRes), contentDescription = category.name, modifier = Modifier.width(76.dp).height(48.dp).padding(start = 8.dp), contentScale = ContentScale.Fit)
         Column(Modifier.padding(start = 9.dp, end = 8.dp)) { Text(category.name, color = if (selected) Color(0xFF10151C) else White, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 2); Text("${category.subcategories.size} secções", color = if (selected) Color(0xFF10151C).copy(alpha = .72f) else White.copy(alpha = .68f), fontSize = 8.sp, modifier = Modifier.padding(top = 2.dp)) }
     }
 }
@@ -413,8 +413,13 @@ private fun openChannel(context: Context, channel: Channel) {
  * nine bundled Mozambique images; these are used as the safe compile-time
  * fallback until the five category-specific image files are committed.
  */
-private fun categoryBackgrounds(category: CategoryDefinition): List<Int> {
-    val all = listOf(R.drawable.mozambique_baia_maputo, R.drawable.mozambique_cfm, R.drawable.mozambique_fortaleza, R.drawable.mozambique_ilha, R.drawable.mozambique_monumento, R.drawable.mozambique_ponte, R.drawable.mozambique_heritage01, R.drawable.mozambique_heritage02, R.drawable.mozambique_heritage03)
-    val offset = categoryDefinitions.indexOfFirst { it.name == category.name }.coerceAtLeast(0)
-    return List(5) { all[(offset + it) % all.size] }
+private fun categoryBackgrounds(category: CategoryDefinition): List<Int> = when (category.name) {
+    "Notícias" -> listOf(R.drawable.noticias_01, R.drawable.noticias_02, R.drawable.noticias_03, R.drawable.noticias_04, R.drawable.noticias_05)
+    "Gospel" -> listOf(R.drawable.gospel_01, R.drawable.gospel_02, R.drawable.gospel_03, R.drawable.gospel_04, R.drawable.gospel_05)
+    "Desporto" -> listOf(R.drawable.desporto_01, R.drawable.desporto_02, R.drawable.desporto_03, R.drawable.desporto_04, R.drawable.desporto_05)
+    "Filmes" -> listOf(R.drawable.filmes_01, R.drawable.filmes_02, R.drawable.filmes_03, R.drawable.filmes_04, R.drawable.filmes_05)
+    "Havila Kids" -> listOf(R.drawable.havila_kids_01, R.drawable.havila_kids_02, R.drawable.havila_kids_03, R.drawable.havila_kids_04, R.drawable.havila_kids_05)
+    "Música" -> listOf(R.drawable.musica_01, R.drawable.musica_02, R.drawable.musica_03, R.drawable.musica_04, R.drawable.musica_05)
+    "Família" -> listOf(R.drawable.familia_01, R.drawable.familia_02, R.drawable.familia_03, R.drawable.familia_04, R.drawable.familia_05)
+    else -> listOf(R.drawable.mozambique_baia_maputo)
 }

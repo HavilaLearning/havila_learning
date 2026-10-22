@@ -149,7 +149,6 @@ object ChannelRepository {
         c("rede-gospel", "Rede Gospel", "Gospel", "Religious", "https://cdn.live.br1.jmvstream.com/w/LVW-8719/LVW8719_AcLVAxWy5J/playlist.m3u8", "https://i.imgur.com/mttSwgO.png"),
         c("rit-tv", "RIT TV", "Gospel", "Religious", "https://acesso.ecast.site:3648/live/ritlive.m3u8", "https://i.imgur.com/Unjs1wi.png"),
         c("sbn-tv-global", "SBN TV Global", "Gospel", "Religious", "https://watch.sardius.media/channels/Ea867F3e1F56B06/site_8D363D13Eb/live.m3u8", "https://i.imgur.com/NJu6oYB.png"),
-        c("tv-mana-1", "TV Mana 1", "Gospel", "Religious", "https://w1.manasat.com/tvmana-1/smil:tvmana-1.smil/playlist.m3u8", "https://i.imgur.com/6jNqpTP.png"),
         c("3abn-proclaim", "3ABN Proclaim! Network", "Gospel", "Religious", "https://3abn.bozztv.com/3abn2/Pro_live/smil:Pro_live.smil/playlist.m3u8", "https://i.imgur.com/zUMUNhe.png"),
         c("alcance-tv", "Alcance TV (Mexico)", "Gospel", "Religious", "https://5bf8041cb3fed.streamlock.net/AlcanceTV/AlcanceTV/playlist.m3u8", "https://i.imgur.com/5nYjRlb.png"),
         c("angel-tv-africa", "Angel TV Africa", "Gospel", "Religious", "https://janya-digimix.akamaized.net/vglive-sk-904559/africa/ngrp:angelafrica_all/playlist.m3u8", "https://i.imgur.com/qKLEGU7.png"),
