@@ -51,7 +51,9 @@ jobs:
           section_start = s.index("@Composable private fun SectionTitle", category_start)
           category_block = s[category_start:section_start]
           background_start = s.index("private fun categoryBackgrounds")
-          background_block = s[background_start:category_start]
+          # categoryBackgrounds is declared after CategoryContent. Keep the complete
+          # helper block instead of slicing backwards from its declaration.
+          background_block = s[background_start:]
 
           if "Crossfade(targetState = backgrounds[backgroundIndex]" not in category_block:
               raise SystemExit("Category background is not rendered inside CategoryContent")
