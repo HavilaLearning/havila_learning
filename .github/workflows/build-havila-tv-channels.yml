@@ -77,8 +77,10 @@ jobs:
           if old in main_text:
               main_text = main_text.replace(old, new, 1)
               print("Category logo fallback connected.")
-          elif "val categoryLogo = categoryDefinitions.firstOrNull { it.name.equals(channel.category, ignoreCase = true) }?.logoRes" in main_text:
+          elif "categoryDefinitions.firstOrNull { it.name.equals(channel.category, ignoreCase = true) }?.logoRes" in main_text:
               print("Category logo fallback already connected.")
+          elif "categoryDefinitions.firstOrNull { it.name == channel.category }?.logoRes" in main_text:
+              print("Category logo fallback already connected (case-sensitive variant).")
           else:
               raise SystemExit("Channel logo rendering block not found")
 
@@ -147,7 +149,11 @@ jobs:
               if match.group(1) != stem(category):
                   raise SystemExit(f"Category {category} logo binding invalid: {match.group(1)}; expected {stem(category)}")
 
-          if "categoryDefinitions.firstOrNull { it.name.equals(channel.category, ignoreCase = true) }?.logoRes" not in m:
+          logo_fallback_ok = (
+              "categoryDefinitions.firstOrNull { it.name.equals(channel.category, ignoreCase = true) }?.logoRes" in m
+              or "categoryDefinitions.firstOrNull { it.name == channel.category }?.logoRes" in m
+          )
+          if not logo_fallback_ok:
               raise SystemExit("Channel category-logo fallback is not connected")
 
           print(f"Complete catalog entries: {len(entries)}")
