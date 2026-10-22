@@ -1,0 +1,154 @@
+name: Repair Havila TV IDs and logos
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [fix-havila-tv-channels]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: HavilaTV/android
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: fix-havila-tv-channels
+
+      - name: Repair duplicate channel IDs
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          p = Path("app/src/main/java/com/havila/tv/ChannelRepository.kt")
+          lines = p.read_text(encoding="utf-8").splitlines(keepends=True)
+          seen = set()
+          counts = {}
+          changed = 0
+          pattern = re.compile(r'^(\s*c\(")([^"]+)("\s*,)')
+
+          for i, line in enumerate(lines):
+              m = pattern.match(line)
+              if not m:
+                  continue
+              original = m.group(2)
+              candidate = original
+              if candidate in seen:
+                  counts[original] = counts.get(original, 1) + 1
+                  suffix = counts[original]
+                  candidate = f"{original}-{suffix}"
+                  while candidate in seen:
+                      suffix += 1
+                      candidate = f"{original}-{suffix}"
+                  lines[i] = line[:m.start(2)] + candidate + line[m.end(2):]
+                  changed += 1
+                  print(f"Repaired duplicate ID: {original} -> {candidate}")
+              else:
+                  counts.setdefault(original, 1)
+              seen.add(candidate)
+
+          if changed:
+              p.write_text("".join(lines), encoding="utf-8")
+          else:
+              print("No duplicate IDs found; catalog is already unique.")
+
+      - name: Connect category logos and safe channel-logo fallback
+        shell: python
+        run: |
+          from pathlib import Path
+
+          p = Path("app/src/main/java/com/havila/tv/MainActivity.kt")
+          s = p.read_text(encoding="utf-8")
+
+          old = 'Text(category.icon, color = if (selected) Color(0xFF10151C) else White, fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 13.dp))'
+          new = 'Image(painter = painterResource(id = category.logoRes), contentDescription = category.name, modifier = Modifier.size(42.dp).padding(start = 8.dp), contentScale = ContentScale.Fit)'
+          if old in s:
+              s = s.replace(old, new, 1)
+              print("CategoryCard now uses the bundled category WebP logo resource.")
+          elif new in s:
+              print("CategoryCard logo connection already present.")
+          else:
+              raise SystemExit("CategoryCard logo anchor not found")
+
+          old = '''        when {
+            local != null -> Image(painter = painterResource(id = local), contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit)
+            !channel.logoUrl.isNullOrBlank() && !failed -> AsyncImage(model = channel.logoUrl, contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit, onError = { failed = true })
+            else -> Text(channelInitials(channel.name), color = White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+        }'''
+          new = '''        when {
+            local != null -> Image(painter = painterResource(id = local), contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit)
+            !channel.logoUrl.isNullOrBlank() && !failed -> AsyncImage(model = channel.logoUrl, contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit, onError = { failed = true })
+            categoryLogoResource(channel.category) != null -> Image(painter = painterResource(id = categoryLogoResource(channel.category)!!), contentDescription = channel.category, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit)
+            else -> Text(channelInitials(channel.name), color = White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+        }'''
+          if old in s:
+              s = s.replace(old, new, 1)
+              print("ChannelLogo now falls back to the correct bundled category logo instead of initials.")
+          elif "categoryLogoResource(channel.category)" in s:
+              print("ChannelLogo category-logo fallback already present.")
+          else:
+              raise SystemExit("ChannelLogo anchor not found")
+
+          p.write_text(s, encoding="utf-8")
+
+          p = Path("app/src/main/java/com/havila/tv/TvUiSupport.kt")
+          s = p.read_text(encoding="utf-8")
+          anchor = '''fun localLogoResource(channelId: String): Int? = when (channelId.lowercase()) {'''
+          helper = '''fun categoryLogoResource(category: String): Int? = categoryDefinitions.firstOrNull { it.name.equals(category, ignoreCase = true) }?.logoRes
+
+fun localLogoResource(channelId: String): Int? = when (channelId.lowercase()) {'''
+          if "fun categoryLogoResource(category: String)" not in s:
+              if anchor not in s:
+                  raise SystemExit("localLogoResource anchor not found")
+              s = s.replace(anchor, helper, 1)
+              p.write_text(s, encoding="utf-8")
+              print("Added categoryLogoResource fallback mapping.")
+          else:
+              print("categoryLogoResource already present.")
+
+      - name: Validate catalog and compile APK
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path("app/src/main/java/com/havila/tv/ChannelRepository.kt")
+          s = p.read_text(encoding="utf-8")
+          entries = re.findall(r'^\s*c\("([^"]+)"\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"', s, re.M)
+          ids = [x[0] for x in entries]
+          blanks = [x[1] for x in entries if not x[1].strip()]
+          bad = [x[0] for x in entries if not x[4].strip()]
+          print(f"Complete catalog entries found: {len(entries)}")
+          print(f"Unique channel IDs: {len(set(ids))}")
+          print(f"Entries with stream URL: {len(entries)-len(bad)}")
+          print(f"Duplicate IDs: {sorted({x for x in ids if ids.count(x) > 1})}")
+          if not entries or len(ids) != len(set(ids)) or blanks or bad:
+              raise SystemExit("Catalog validation failed")
+          PY
+          chmod +x ./gradlew
+          ./gradlew --no-daemon assembleDebug --stacktrace
+
+      - name: Upload repaired APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: HavilaTV-repaired-ids-logos-debug-apk
+          path: HavilaTV/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+      - name: Commit repaired source
+        run: |
+          git diff --check
+          git config user.name HavilaLearning
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add HavilaTV/android/app/src/main/java/com/havila/tv/ChannelRepository.kt HavilaTV/android/app/src/main/java/com/havila/tv/MainActivity.kt HavilaTV/android/app/src/main/java/com/havila/tv/TvUiSupport.kt
+          if git diff --cached --quiet; then
+            echo "No source changes to commit."
+          else
+            git commit -m "Fix channel IDs and logo handling"
+            git push origin HEAD:fix-havila-tv-channels
+          fi
