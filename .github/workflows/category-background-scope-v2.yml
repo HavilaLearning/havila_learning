@@ -25,17 +25,21 @@ jobs:
           import re
 
           p = Path("HavilaTV/android/app/src/main/java/com/havila/tv/MainActivity.kt")
+          support = Path("HavilaTV/android/app/src/main/java/com/havila/tv/TvUiSupport.kt")
           s = p.read_text(encoding="utf-8")
+          t = support.read_text(encoding="utf-8")
 
           required = [
-              "Notícias", "Gospel", "Desporto", "Filmes e Séries",
-              "Havila Kids", "Música e Entretenimento", "Família e Cultura"
+              "Notícias", "Desporto", "Gospel", "Filmes",
+              "Música", "Havila Kids", "Família"
           ]
 
           if "private fun CategoryContent" not in s:
               raise SystemExit("CategoryContent not found")
           if "private fun categoryBackgrounds" not in s:
               raise SystemExit("categoryBackgrounds not found")
+          if "val categoryDefinitions = listOf(" not in t:
+              raise SystemExit("categoryDefinitions not found")
 
           category_start = s.index("private fun CategoryContent")
           section_start = s.index("@Composable private fun SectionTitle", category_start)
@@ -48,18 +52,35 @@ jobs:
           if "Hero(" in category_block:
               raise SystemExit("Home Hero must not be part of CategoryContent")
 
-          missing = []
+          # Every category must have exactly five rotating background resources.
+          background_block = s[s.index("private fun categoryBackgrounds"):category_start]
           for name in required:
-              if f'"{name}" -> listOf' not in s:
-                  missing.append(name)
-          if missing:
-              raise SystemExit("Missing category background bindings: " + ", ".join(missing))
+              match = re.search(rf'"{re.escape(name)}"\s*->\s*listOf\(([^)]*)\)', background_block)
+              if not match:
+                  raise SystemExit(f"Missing category background binding: {name}")
+              resources = re.findall(r"R\.drawable\.([A-Za-z0-9_]+)", match.group(1))
+              if len(resources) != 5:
+                  raise SystemExit(f"Category {name} must have exactly 5 background images; found {len(resources)}")
+              expected = [f"{name.lower().replace(' ', '_')}_{i:02d}" for i in range(1, 6)]
+              if resources != expected:
+                  raise SystemExit(f"Category {name} background order/names invalid: {resources}")
 
-          # The Home screen keeps its own Hero and DashboardContent structure.
+          # Each category card uses its own category logo resource.
+          for name in required:
+              if not re.search(rf'CategoryDef\("{re.escape(name)}".*?R\.drawable\.[A-Za-z0-9_]+\)', t, re.S):
+                  raise SystemExit(f"Missing category logo binding: {name}")
+
+          # The category background must remain scoped to CategoryContent.
           home_start = s.index("private fun HomeContent")
+          category_fn_start = s.index("private fun categoryBackgrounds")
+          if category_fn_start < home_start:
+              raise SystemExit("Category background helper must not be part of HomeContent")
           if s.index("private fun Hero") > home_start:
               raise SystemExit("Unexpected Hero placement")
+          if "backgrounds[backgroundIndex]" not in category_block:
+              raise SystemExit("Category carousel state is missing")
 
           print("Category background scope: OK")
-          print("Home Hero/header: preserved")
-          print(f"Category background bindings: {len(required)}/{len(required)}")
+          print("Home Hero/header: preserved and independent")
+          print("Category logos: 7/7 bound to dedicated logo resources")
+          print("Category background carousels: 7/7 with exactly 5 images each")
