@@ -1,4 +1,4 @@
-name: Build Havila TV Channels Fix
+name: Havila TV — Repair, Validate & Build
 
 on:
   push:
@@ -7,17 +7,177 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  build-apk:
+  repair-validate-build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: HavilaTV/android
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: fix-havila-tv-channels
+          fetch-depth: 1
+
+      - name: Repair duplicate channel IDs and logo fallback
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          repo = Path("HavilaTV/android/app/src/main/java/com/havila/tv/ChannelRepository.kt")
+          main = Path("HavilaTV/android/app/src/main/java/com/havila/tv/MainActivity.kt")
+
+          if not repo.is_file() or not main.is_file():
+              raise SystemExit("Havila TV source files not found")
+
+          s = repo.read_text(encoding="utf-8")
+          entry_re = re.compile(r'^(\s*c\(\s*")([^"]+)("\s*,.*)$', re.M)
+          seen = set()
+          counters = {}
+          duplicates = []
+
+          def repair_id(match):
+              prefix, channel_id, suffix = match.groups()
+              if channel_id not in seen:
+                  seen.add(channel_id)
+                  counters[channel_id] = 1
+                  return match.group(0)
+              counters[channel_id] += 1
+              new_id = f"{channel_id}-{counters[channel_id]}"
+              while new_id in seen:
+                  counters[channel_id] += 1
+                  new_id = f"{channel_id}-{counters[channel_id]}"
+              seen.add(new_id)
+              duplicates.append((channel_id, new_id))
+              return prefix + new_id + suffix
+
+          s = entry_re.sub(repair_id, s)
+          repo.write_text(s, encoding="utf-8")
+
+          main_text = main.read_text(encoding="utf-8")
+          old = '''        when {
+            local != null -> Image(painter = painterResource(id = local), contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit)
+            !channel.logoUrl.isNullOrBlank() && !failed -> AsyncImage(model = channel.logoUrl, contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit, onError = { failed = true })
+            else -> Text(channelInitials(channel.name), color = White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+        }'''
+          new = '''        when {
+            local != null -> Image(painter = painterResource(id = local), contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit)
+            !channel.logoUrl.isNullOrBlank() && !failed -> AsyncImage(model = channel.logoUrl, contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit, onError = { failed = true })
+            else -> {
+                val categoryLogo = categoryDefinitions.firstOrNull { it.name.equals(channel.category, ignoreCase = true) }?.logoRes
+                if (categoryLogo != null) {
+                    Image(painter = painterResource(id = categoryLogo), contentDescription = channel.category, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit)
+                } else {
+                    Text(channelInitials(channel.name), color = White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+                }
+            }
+        }'''
+          if old in main_text:
+              main_text = main_text.replace(old, new, 1)
+              print("Category logo fallback connected.")
+          elif "val categoryLogo = categoryDefinitions.firstOrNull { it.name.equals(channel.category, ignoreCase = true) }?.logoRes" in main_text:
+              print("Category logo fallback already connected.")
+          else:
+              raise SystemExit("Channel logo rendering block not found")
+
+          main.write_text(main_text, encoding="utf-8")
+          print(f"Duplicate ID repairs applied: {len(duplicates)}")
+          for old_id, new_id in duplicates:
+              print(f"  {old_id} -> {new_id}")
+
+      - name: Validate complete catalogue and category artwork
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+          import unicodedata
+
+          repo = Path("HavilaTV/android/app/src/main/java/com/havila/tv/ChannelRepository.kt")
+          main = Path("HavilaTV/android/app/src/main/java/com/havila/tv/MainActivity.kt")
+          support = Path("HavilaTV/android/app/src/main/java/com/havila/tv/TvUiSupport.kt")
+
+          s = repo.read_text(encoding="utf-8")
+          m = main.read_text(encoding="utf-8")
+          t = support.read_text(encoding="utf-8")
+
+          entries = re.findall(r'^\s*c\(\s*"([^"]+)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*(?:,\s*"([^"]*)")?\s*\)', s, re.M)
+          if not entries:
+              raise SystemExit("No canonical channel entries found")
+
+          ids = [x[0] for x in entries]
+          names = [x[1] for x in entries]
+          streams = [x[4] for x in entries]
+          logos = [x[5] for x in entries]
+          duplicates = sorted({x for x in ids if ids.count(x) > 1})
+
+          required = ["Notícias", "Desporto", "Gospel", "Filmes", "Música", "Havila Kids", "Família"]
+
+          def stem(name):
+              normalized = unicodedata.normalize("NFKD", name)
+              ascii_name = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+              return ascii_name.lower().replace(" ", "_")
+
+          category_start = m.index("private fun CategoryContent")
+          section_start = m.index("@Composable private fun SectionTitle", category_start)
+          category_block = m[category_start:section_start]
+          background_start = m.index("private fun categoryBackgrounds")
+          background_block = m[background_start:]
+
+          if "Crossfade(targetState = backgrounds[backgroundIndex]" not in category_block:
+              raise SystemExit("Category background carousel is not rendered inside CategoryContent")
+          if "Hero(" in category_block:
+              raise SystemExit("Home Hero/background must remain outside CategoryContent")
+
+          for category in required:
+              match = re.search(rf'"{re.escape(category)}"\s*->\s*listOf\(([^)]*)\)', background_block)
+              if not match:
+                  raise SystemExit(f"Missing category background binding: {category}")
+              resources = re.findall(r"R\.drawable\.([A-Za-z0-9_]+)", match.group(1))
+              expected = [f"{stem(category)}_{i:02d}" for i in range(1, 6)]
+              if resources != expected:
+                  raise SystemExit(f"Category {category} backgrounds invalid: {resources}; expected {expected}")
+
+          definitions = t[t.index("val categoryDefinitions = listOf("):]
+          for category in required:
+              match = re.search(rf'CategoryDef\("{re.escape(category)}".*?R\.drawable\.([A-Za-z0-9_]+)\)', definitions, re.S)
+              if not match:
+                  raise SystemExit(f"Missing category logo binding: {category}")
+              if match.group(1) != stem(category):
+                  raise SystemExit(f"Category {category} logo binding invalid: {match.group(1)}; expected {stem(category)}")
+
+          if "categoryDefinitions.firstOrNull { it.name.equals(channel.category, ignoreCase = true) }?.logoRes" not in m:
+              raise SystemExit("Channel category-logo fallback is not connected")
+
+          print(f"Complete catalog entries: {len(entries)}")
+          print(f"Unique channel IDs: {len(set(ids))}")
+          print(f"Entries with stream URL: {sum(bool(x.strip()) for x in streams)}")
+          print(f"Entries with direct logo URL: {sum(bool(x.strip()) for x in logos)}")
+          print(f"Entries using category-logo fallback: {sum(not bool(x.strip()) for x in logos)}")
+          print("Category logos: 7/7 dedicated")
+          print("Category carousels: 7/7 with exactly 5 dedicated images")
+          print("Home background: independent and preserved")
+
+          if duplicates:
+              raise SystemExit("Duplicate IDs remain: " + ", ".join(duplicates))
+          if any(not x.strip() for x in names):
+              raise SystemExit("Blank channel name found")
+          if any(not x.strip() for x in streams):
+              raise SystemExit("Missing stream URL")
+
+      - name: Commit repairs if source changed
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add HavilaTV/android/app/src/main/java/com/havila/tv/ChannelRepository.kt HavilaTV/android/app/src/main/java/com/havila/tv/MainActivity.kt
+          if git diff --cached --quiet; then
+            echo "No source repairs required."
+          else
+            git commit -m "Consolidate Havila TV channel repairs"
+            git push origin HEAD:fix-havila-tv-channels
+          fi
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -26,28 +186,29 @@ jobs:
           java-version: '17'
           cache: gradle
 
-      - name: Verify project files
+      - name: Verify Android project
+        working-directory: HavilaTV/android
         run: |
           test -f ./settings.gradle.kts
           test -f ./build.gradle.kts
           test -f ./app/build.gradle.kts
+          test -f ./gradlew
           test -f ./app/src/main/java/com/havila/tv/MainActivity.kt
           test -f ./app/src/main/java/com/havila/tv/PlayerActivity.kt
           test -f ./app/src/main/java/com/havila/tv/ChannelRepository.kt
 
-      - name: Install Gradle 8.13
-        working-directory: .
-        run: |
-          curl -fsSL https://services.gradle.org/distributions/gradle-8.13-bin.zip -o /tmp/gradle.zip
-          unzip -q /tmp/gradle.zip -d /tmp
-          echo "/tmp/gradle-8.13/bin" >> "$GITHUB_PATH"
+      - name: Make Gradle wrapper executable
+        working-directory: HavilaTV/android
+        run: chmod +x ./gradlew
 
       - name: Build complete debug APK
-        run: gradle --no-daemon assembleDebug --stacktrace
+        working-directory: HavilaTV/android
+        run: ./gradlew --no-daemon assembleDebug --stacktrace
 
       - name: Verify APK exists
+        working-directory: HavilaTV/android
         run: |
-          test -f app/build/outputs/apk/debug/app-debug.apk
+          test -s app/build/outputs/apk/debug/app-debug.apk
           ls -lh app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload complete APK
