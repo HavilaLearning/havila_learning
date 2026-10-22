@@ -1,4 +1,4 @@
-name: Repair Havila TV IDs and logo handling
+name: Validate and repair Havila TV IDs and logos
 
 on:
   workflow_dispatch:
@@ -11,88 +11,135 @@ permissions:
 jobs:
   repair:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: HavilaTV/android
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: fix-havila-tv-channels
-          fetch-depth: 0
+          fetch-depth: 1
 
-      - name: Repair duplicate channel IDs and category logo mapping
+      - name: Repair duplicate IDs and channel logo fallback
         shell: python
         run: |
           from pathlib import Path
           import re
-          catalog = Path("app/src/main/java/com/havila/tv/ChannelRepository.kt")
-          lines = catalog.read_text(encoding="utf-8").splitlines(keepends=True)
-          seen = set(); counts = {}
-          pattern = re.compile(r'^(\s*c\(\s*")([^"]+)("\s*,)')
-          for i, line in enumerate(lines):
-              m = pattern.match(line)
-              if not m: continue
-              original = m.group(2); candidate = original
-              if candidate in seen:
-                  n = counts.get(original, 1) + 1
-                  candidate = f"{original}-{n}"
-                  while candidate in seen:
-                      n += 1; candidate = f"{original}-{n}"
-                  lines[i] = line[:m.start(2)] + candidate + line[m.end(2):]
-                  print(f"Repaired duplicate ID: {original} -> {candidate}")
-              counts[original] = counts.get(original, 1) + 1
-              seen.add(candidate)
-          catalog.write_text("".join(lines), encoding="utf-8")
 
-          main = Path("app/src/main/java/com/havila/tv/MainActivity.kt")
-          s = main.read_text(encoding="utf-8")
-          old_logo = '''        when {
+          repo = Path("HavilaTV/android/app/src/main/java/com/havila/tv/ChannelRepository.kt")
+          main = Path("HavilaTV/android/app/src/main/java/com/havila/tv/MainActivity.kt")
+
+          # Preserve every catalogue entry. Only later duplicate IDs are renamed.
+          s = repo.read_text(encoding="utf-8")
+          entry_re = re.compile(r'^(\s*c\(\s*")([^"]+)("\s*,.*)$', re.M)
+          seen = set()
+          counters = {}
+          duplicates = []
+
+          def repair_id(match):
+              prefix, channel_id, suffix = match.groups()
+              if channel_id not in seen:
+                  seen.add(channel_id)
+                  counters[channel_id] = 1
+                  return match.group(0)
+              counters[channel_id] += 1
+              new_id = f"{channel_id}-{counters[channel_id]}"
+              while new_id in seen:
+                  counters[channel_id] += 1
+                  new_id = f"{channel_id}-{counters[channel_id]}"
+              seen.add(new_id)
+              duplicates.append((channel_id, new_id))
+              return prefix + new_id + suffix
+
+          s = entry_re.sub(repair_id, s)
+          repo.write_text(s, encoding="utf-8")
+
+          main_text = main.read_text(encoding="utf-8")
+
+          # Ensure channels without a direct logo use their category logo.
+          old = '''        when {
             local != null -> Image(painter = painterResource(id = local), contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit)
             !channel.logoUrl.isNullOrBlank() && !failed -> AsyncImage(model = channel.logoUrl, contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit, onError = { failed = true })
             else -> Text(channelInitials(channel.name), color = White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
         }'''
-          new_logo = '''        when {
+          new = '''        when {
             local != null -> Image(painter = painterResource(id = local), contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit)
             !channel.logoUrl.isNullOrBlank() && !failed -> AsyncImage(model = channel.logoUrl, contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit, onError = { failed = true })
-            categoryDefinitions.firstOrNull { it.name.equals(channel.category, ignoreCase = true) }?.logoRes != null -> Image(painter = painterResource(id = categoryDefinitions.first { it.name.equals(channel.category, ignoreCase = true) }.logoRes), contentDescription = channel.category, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit)
-            else -> Text(channelInitials(channel.name), color = White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+            else -> {
+                val categoryLogo = categoryDefinitions.firstOrNull { it.name.equals(channel.category, ignoreCase = true) }?.logoRes
+                if (categoryLogo != null) {
+                    Image(painter = painterResource(id = categoryLogo), contentDescription = channel.category, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit)
+                } else {
+                    Text(channelInitials(channel.name), color = White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+                }
+            }
         }'''
-          if old_logo in s:
-              s = s.replace(old_logo, new_logo, 1)
-              print("ChannelLogo category fallback connected.")
-          elif "categoryDefinitions.firstOrNull { it.name.equals(channel.category, ignoreCase = true) }?.logoRes" in s:
-              print("ChannelLogo category fallback already connected.")
+          if old in main_text:
+              main_text = main_text.replace(old, new, 1)
+              print("Channel logo category fallback repaired.")
+          elif "val categoryLogo = categoryDefinitions.firstOrNull { it.name.equals(channel.category, ignoreCase = true) }?.logoRes" in main_text:
+              print("Channel logo category fallback already present.")
           else:
-              raise SystemExit("ChannelLogo source not found")
-          main.write_text(s, encoding="utf-8")
+              raise SystemExit("ChannelLogo block not found")
 
-      - name: Validate repaired source before committing
+          main.write_text(main_text, encoding="utf-8")
+
+          print(f"Duplicate ID repairs applied: {len(duplicates)}")
+          for old_id, new_id in duplicates:
+              print(f"  {old_id} -> {new_id}")
+
+      - name: Validate complete catalogue and logo bindings
         shell: python
         run: |
           from pathlib import Path
           import re
-          p = Path("app/src/main/java/com/havila/tv/ChannelRepository.kt")
-          s = p.read_text(encoding="utf-8")
+
+          repo = Path("HavilaTV/android/app/src/main/java/com/havila/tv/ChannelRepository.kt")
+          main = Path("HavilaTV/android/app/src/main/java/com/havila/tv/MainActivity.kt")
+          s = repo.read_text(encoding="utf-8")
+          m = main.read_text(encoding="utf-8")
+
           entries = re.findall(r'^\s*c\(\s*"([^"]+)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*(?:,\s*"([^"]*)")?\s*\)', s, re.M)
-          ids = [x[0] for x in entries]; names = [x[1] for x in entries]; streams = [x[4] for x in entries]; logos = [x[5] for x in entries]
+          if not entries:
+              raise SystemExit("No canonical channel entries found")
+
+          ids = [x[0] for x in entries]
+          names = [x[1] for x in entries]
+          streams = [x[4] for x in entries]
+          logos = [x[5] for x in entries]
           duplicates = sorted({x for x in ids if ids.count(x) > 1})
-          print(f"Complete catalog entries found: {len(entries)}")
+
+          required_categories = ["Notícias", "Gospel", "Desporto", "Filmes", "Havila Kids", "Música", "Família"]
+          missing_categories = [x for x in required_categories if f'"{x}" -> listOf' not in m]
+
+          print(f"Complete catalog entries: {len(entries)}")
           print(f"Unique channel IDs: {len(set(ids))}")
           print(f"Entries with stream URL: {sum(bool(x.strip()) for x in streams)}")
           print(f"Entries with direct logo URL: {sum(bool(x.strip()) for x in logos)}")
-          print(f"Entries using category-logo fallback: {sum(not x.strip() for x in logos)}")
-          print(f"Duplicate IDs: {duplicates}")
-          if not entries or duplicates or any(not x.strip() for x in names) or any(not x.strip() for x in streams):
-              raise SystemExit("Catalog validation failed")
+          print(f"Entries using category-logo fallback: {sum(not bool(x.strip()) for x in logos)}")
+          print(f"Category background bindings: {len(required_categories) - len(missing_categories)}/{len(required_categories)}")
 
-      - name: Commit repaired source BEFORE build
+          if duplicates:
+              raise SystemExit("Duplicate IDs remain: " + ", ".join(duplicates))
+          if any(not x.strip() for x in names):
+              raise SystemExit("Blank channel name found")
+          if any(not x.strip() for x in streams):
+              raise SystemExit("Missing stream URL")
+          if missing_categories:
+              raise SystemExit("Missing category background bindings: " + ", ".join(missing_categories))
+          if "categoryDefinitions.firstOrNull { it.name.equals(channel.category, ignoreCase = true) }?.logoRes" not in m:
+              raise SystemExit("Category logo fallback is not connected")
+
+      - name: Commit repairs before build
+        shell: bash
         run: |
-          git diff --check
-          git config user.name HavilaLearning
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add app/src/main/java/com/havila/tv/ChannelRepository.kt app/src/main/java/com/havila/tv/MainActivity.kt
-          if git diff --cached --quiet; then echo "No source changes to commit."; else git commit -m "Fix Havila TV channel IDs and category logos"; git push origin HEAD:fix-havila-tv-channels; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add HavilaTV/android/app/src/main/java/com/havila/tv/ChannelRepository.kt HavilaTV/android/app/src/main/java/com/havila/tv/MainActivity.kt
+          if git diff --cached --quiet; then
+            echo "No source changes required."
+          else
+            git commit -m "Repair TV IDs and category logo fallback"
+            git push origin HEAD:fix-havila-tv-channels
+          fi
 
       - name: Install Gradle 8.13
         working-directory: .
@@ -108,10 +155,3 @@ jobs:
 
       - name: Verify APK
         run: test -s app/build/outputs/apk/debug/app-debug.apk
-
-      - name: Upload repaired APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: HavilaTV-repaired-ids-logos-debug-apk
-          path: HavilaTV/android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
