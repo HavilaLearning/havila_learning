@@ -20,7 +20,70 @@ jobs:
           ref: fix-havila-tv-channels
           fetch-depth: 1
 
-      - name: Repair duplicate channel IDs and logo fallback
+      - name: Ensure category logos and five-image carousel assets
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          d = Path("HavilaTV/android/app/src/main/res/drawable-nodpi")
+          d.mkdir(parents=True, exist_ok=True)
+
+          logos = {
+              "noticias": ("#1E5A78", "news"),
+              "desporto": ("#24734B", "sports"),
+              "gospel": ("#6B4A9A", "gospel"),
+              "filmes": ("#8A3E49", "film"),
+              "musica": ("#2E7180", "music"),
+              "havila_kids": ("#9A7426", "kids"),
+              "familia": ("#6B5630", "family"),
+          }
+          logo_shapes = {
+              "news": '<path android:fillColor="#FFFFFF" android:pathData="M42,25h76v50H42z M50,33h44v6H50z M50,45h60v6H50z M50,57h52v6H50z M50,69h34v6H50z"/>',
+              "sports": '<circle android:fillColor="#FFFFFF" android:cx="80" android:cy="50" android:r="28"/><circle android:fillColor="#24734B" android:cx="80" android:cy="50" android:r="18"/><path android:fillColor="#FFFFFF" android:pathData="M80,22l8,16-8,12-8-12z M52,43l18-2 8,10-12,11-16-8z M108,43l-18-2-8,10 12,11 16-8z"/>',
+              "gospel": '<path android:fillColor="#FFFFFF" android:pathData="M70,18h20v25h25v14H90v25H70V57H45V43h25z"/>',
+              "film": '<path android:fillColor="#FFFFFF" android:pathData="M38,25h84v50H38z"/><path android:fillColor="#8A3E49" android:pathData="M48,25l10,25-10,25 M70,25l10,25-10,25 M92,25l10,25-10,25"/>',
+              "music": '<path android:fillColor="#FFFFFF" android:pathData="M88,22v43a15,15 0,1 1,-8,-13V32l38,-9v38a15,15 0,1 1,-8,-13V22z"/>',
+              "kids": '<circle android:fillColor="#FFFFFF" android:cx="80" android:cy="48" android:r="27"/><circle android:fillColor="#9A7426" android:cx="70" android:cy="44" android:r="3"/><circle android:fillColor="#9A7426" android:cx="90" android:cy="44" android:r="3"/><path android:strokeColor="#9A7426" android:strokeWidth="5" android:strokeLineCap="round" android:fillColor="@android:color/transparent" android:pathData="M68,57q12,12 24,0"/>',
+              "family": '<circle android:fillColor="#FFFFFF" android:cx="80" android:cy="35" android:r="11"/><circle android:fillColor="#FFFFFF" android:cx="54" android:cy="48" android:r="9"/><circle android:fillColor="#FFFFFF" android:cx="106" android:cy="48" android:r="9"/><path android:fillColor="#FFFFFF" android:pathData="M61,75q0,-20 19,-20t19,20v8H61z M38,82v-9q0,-14 14,-14 9,0 13,8v15z M97,67q4,-8 13,-8 14,0 14,14v9H97z"/>'
+          }
+          for name, (bg, kind) in logos.items():
+              p = d / f"{name}.xml"
+              if not p.exists():
+                  p.write_text(f'''<?xml version="1.0" encoding="utf-8"?>\n<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="160dp" android:height="100dp" android:viewportWidth="160" android:viewportHeight="100"><path android:fillColor="{bg}" android:pathData="M12,0 L148,0 Q160,0 160,12 L160,88 Q160,100 148,100 L12,100 Q0,100 0,88 L0,12 Q0,0 12,0z"/>{logo_shapes[kind]}</vector>\n''', encoding="utf-8")
+
+          palettes = {
+              "noticias": ["#081D2B", "#123A52", "#1E5A78", "#0D3146", "#204C63"],
+              "desporto": ["#0A2518", "#174C31", "#24734B", "#123D2A", "#2B6A49"],
+              "gospel": ["#1C1230", "#3A2460", "#6B4A9A", "#2A1C48", "#584078"],
+              "filmes": ["#241014", "#4A2027", "#8A3E49", "#34191F", "#6E303A"],
+              "musica": ["#0A2830", "#1A4B56", "#2E7180", "#123C47", "#3A7F8B"],
+              "havila_kids": ["#3A2608", "#674710", "#9A7426", "#5A3C0C", "#B18A38"],
+              "familia": ["#251D11", "#49391F", "#6B5630", "#3A2E19", "#806A3D"],
+          }
+          for cat, colors in palettes.items():
+              for i, bg in enumerate(colors, 1):
+                  p = d / f"{cat}_{i:02d}.xml"
+                  accent = ["#F2C14E", "#FFFFFF", "#D9A441", "#9ED7FF", "#FFD76A"][i-1]
+                  motif = f'<path android:fillColor="{accent}" android:fillAlpha="0.15" android:pathData="M0,760 Q300,560 600,760 T1200,740 T1600,760 V900 H0z"/><circle android:fillColor="{accent}" android:fillAlpha="0.12" android:cx="1280" android:cy="330" android:r="250"/>'
+                  if cat == "noticias":
+                      motif += f'<path android:strokeColor="{accent}" android:strokeWidth="8" android:fillColor="@android:color/transparent" android:pathData="M120,160 L520,160 M120,230 L430,230 M120,300 L600,300"/>'
+                  elif cat == "desporto":
+                      motif += f'<circle android:fillColor="{accent}" android:fillAlpha="0.10" android:cx="1250" android:cy="470" android:r="150"/><path android:strokeColor="{accent}" android:strokeWidth="12" android:fillColor="@android:color/transparent" android:pathData="M120,720 L520,620 L820,730 L1220,560 L1510,640"/>'
+                  elif cat == "gospel":
+                      motif += f'<path android:fillColor="{accent}" android:fillAlpha="0.12" android:pathData="M760,120h90v260h260v90H850v260h-90V470H500v-90h260z"/>'
+                  elif cat == "filmes":
+                      motif += f'<rect android:fillColor="{accent}" android:fillAlpha="0.12" android:x="180" android:y="150" android:width="700" android:height="390"/><path android:fillColor="{accent}" android:fillAlpha="0.16" android:pathData="M1120,130 L1440,310 L1120,490z"/>'
+                  elif cat == "musica":
+                      motif += f'<path android:fillColor="{accent}" android:fillAlpha="0.16" android:pathData="M250,700h70V380h220v70H320v250z M520,620h70V300h220v70H590v250z M790,540h70V220h220v70H860v250z"/>'
+                  elif cat == "havila_kids":
+                      motif += f'<circle android:fillColor="{accent}" android:fillAlpha="0.14" android:cx="320" android:cy="280" android:r="120"/><path android:strokeColor="{accent}" android:strokeWidth="8" android:fillColor="@android:color/transparent" android:pathData="M220,180 L270,90 L320,180 L410,130 L380,230 L470,270 L360,300 L390,400 L300,340 L210,400 L240,300 L130,270 L220,230z"/>'
+                  else:
+                      motif += f'<circle android:fillColor="{accent}" android:fillAlpha="0.10" android:cx="420" android:cy="500" android:r="220"/><path android:strokeColor="{accent}" android:strokeWidth="8" android:fillColor="@android:color/transparent" android:pathData="M650,650 Q800,500 950,650"/>'
+                  p.write_text(f'''<?xml version="1.0" encoding="utf-8"?>\n<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="1600dp" android:height="900dp" android:viewportWidth="1600" android:viewportHeight="900"><path android:fillColor="{bg}" android:pathData="M0,0h1600v900H0z"/>{motif}</vector>\n''', encoding="utf-8")
+          print("Category logos: 7; category carousel backgrounds: 7 x 5 = 35")
+
+      - name: Repair duplicate channel IDs and connect category logo fallback
         shell: python
         run: |
           from pathlib import Path
@@ -28,160 +91,81 @@ jobs:
 
           repo = Path("HavilaTV/android/app/src/main/java/com/havila/tv/ChannelRepository.kt")
           main = Path("HavilaTV/android/app/src/main/java/com/havila/tv/MainActivity.kt")
-
           if not repo.is_file() or not main.is_file():
               raise SystemExit("Havila TV source files not found")
 
           s = repo.read_text(encoding="utf-8")
           entry_re = re.compile(r'^(\s*c\(\s*")([^"]+)("\s*,.*)$', re.M)
-          seen = set()
-          counters = {}
-          duplicates = []
-
+          seen = set(); counters = {}; duplicates = []
           def repair_id(match):
               prefix, channel_id, suffix = match.groups()
               if channel_id not in seen:
-                  seen.add(channel_id)
-                  counters[channel_id] = 1
-                  return match.group(0)
-              counters[channel_id] += 1
+                  seen.add(channel_id); counters[channel_id] = 1; return match.group(0)
+              counters[channel_id] = counters.get(channel_id, 1) + 1
               new_id = f"{channel_id}-{counters[channel_id]}"
               while new_id in seen:
-                  counters[channel_id] += 1
-                  new_id = f"{channel_id}-{counters[channel_id]}"
-              seen.add(new_id)
-              duplicates.append((channel_id, new_id))
-              return prefix + new_id + suffix
-
-          s = entry_re.sub(repair_id, s)
-          repo.write_text(s, encoding="utf-8")
+                  counters[channel_id] += 1; new_id = f"{channel_id}-{counters[channel_id]}"
+              seen.add(new_id); duplicates.append((channel_id, new_id)); return prefix + new_id + suffix
+          s = entry_re.sub(repair_id, s); repo.write_text(s, encoding="utf-8")
 
           main_text = main.read_text(encoding="utf-8")
-          old = '''        when {
-            local != null -> Image(painter = painterResource(id = local), contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit)
-            !channel.logoUrl.isNullOrBlank() && !failed -> AsyncImage(model = channel.logoUrl, contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit, onError = { failed = true })
-            else -> Text(channelInitials(channel.name), color = White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
-        }'''
-          new = '''        when {
-            local != null -> Image(painter = painterResource(id = local), contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit)
-            !channel.logoUrl.isNullOrBlank() && !failed -> AsyncImage(model = channel.logoUrl, contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit, onError = { failed = true })
-            else -> {
-                val categoryLogo = categoryDefinitions.firstOrNull { it.name.equals(channel.category, ignoreCase = true) }?.logoRes
-                if (categoryLogo != null) {
-                    Image(painter = painterResource(id = categoryLogo), contentDescription = channel.category, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit)
-                } else {
-                    Text(channelInitials(channel.name), color = White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
-                }
-            }
-        }'''
+          old = 'else -> Text(channelInitials(channel.name), color = White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)'
+          new = '''else -> {\n                val categoryLogo = categoryDefinitions.firstOrNull { it.name.equals(channel.category, ignoreCase = true) }?.logoRes\n                if (categoryLogo != null) {\n                    Image(painter = painterResource(id = categoryLogo), contentDescription = channel.category, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit)\n                } else {\n                    Text(channelInitials(channel.name), color = White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)\n                }\n            }'''
           if old in main_text:
               main_text = main_text.replace(old, new, 1)
-              print("Category logo fallback connected.")
-          elif "categoryDefinitions.firstOrNull { it.name.equals(channel.category, ignoreCase = true) }?.logoRes" in main_text:
-              print("Category logo fallback already connected.")
-          elif "categoryDefinitions.firstOrNull { it.name == channel.category }?.logoRes" in main_text:
-              print("Category logo fallback already connected (case-sensitive variant).")
-          else:
+          elif "categoryDefinitions.firstOrNull { it.name.equals(channel.category, ignoreCase = true) }?.logoRes" not in main_text:
               raise SystemExit("Channel logo rendering block not found")
-
           main.write_text(main_text, encoding="utf-8")
           print(f"Duplicate ID repairs applied: {len(duplicates)}")
-          for old_id, new_id in duplicates:
-              print(f"  {old_id} -> {new_id}")
+          for old_id, new_id in duplicates: print(f"  {old_id} -> {new_id}")
 
       - name: Validate complete catalogue and category artwork
         shell: python
         run: |
           from pathlib import Path
-          import re
-          import unicodedata
-
+          import re, unicodedata
           repo = Path("HavilaTV/android/app/src/main/java/com/havila/tv/ChannelRepository.kt")
           main = Path("HavilaTV/android/app/src/main/java/com/havila/tv/MainActivity.kt")
           support = Path("HavilaTV/android/app/src/main/java/com/havila/tv/TvUiSupport.kt")
-
-          s = repo.read_text(encoding="utf-8")
-          m = main.read_text(encoding="utf-8")
-          t = support.read_text(encoding="utf-8")
-
+          s = repo.read_text(encoding="utf-8"); m = main.read_text(encoding="utf-8"); t = support.read_text(encoding="utf-8")
           entries = re.findall(r'^\s*c\(\s*"([^"]+)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*(?:,\s*"([^"]*)")?\s*\)', s, re.M)
-          if not entries:
-              raise SystemExit("No canonical channel entries found")
-
-          ids = [x[0] for x in entries]
-          names = [x[1] for x in entries]
-          streams = [x[4] for x in entries]
-          logos = [x[5] for x in entries]
-          duplicates = sorted({x for x in ids if ids.count(x) > 1})
-
-          required = ["Notícias", "Desporto", "Gospel", "Filmes", "Música", "Havila Kids", "Família"]
-
+          if not entries: raise SystemExit("No canonical channel entries found")
+          ids=[x[0] for x in entries]; names=[x[1] for x in entries]; streams=[x[4] for x in entries]; logos=[x[5] for x in entries]
+          duplicates=sorted({x for x in ids if ids.count(x)>1})
+          required=["Notícias","Desporto","Gospel","Filmes","Música","Havila Kids","Família"]
           def stem(name):
-              normalized = unicodedata.normalize("NFKD", name)
-              ascii_name = "".join(ch for ch in normalized if not unicodedata.combining(ch))
-              return ascii_name.lower().replace(" ", "_")
-
-          category_start = m.index("private fun CategoryContent")
-          section_start = m.index("@Composable private fun SectionTitle", category_start)
-          category_block = m[category_start:section_start]
-          background_start = m.index("private fun categoryBackgrounds")
-          background_block = m[background_start:]
-
-          if "Crossfade(targetState = backgrounds[backgroundIndex]" not in category_block:
-              raise SystemExit("Category background carousel is not rendered inside CategoryContent")
-          if "Hero(" in category_block:
-              raise SystemExit("Home Hero/background must remain outside CategoryContent")
-
+              n=unicodedata.normalize("NFKD",name); a="".join(ch for ch in n if not unicodedata.combining(ch)); return a.lower().replace(" ","_")
+          category_start=m.index("private fun CategoryContent"); section_start=m.index("@Composable private fun SectionTitle",category_start); category_block=m[category_start:section_start]
+          if "Crossfade(targetState = backgrounds[backgroundIndex]" not in category_block: raise SystemExit("Category background carousel is not rendered inside CategoryContent")
+          if "Hero(" in category_block: raise SystemExit("Home Hero/background must remain outside CategoryContent")
           for category in required:
-              match = re.search(rf'"{re.escape(category)}"\s*->\s*listOf\(([^)]*)\)', background_block)
-              if not match:
-                  raise SystemExit(f"Missing category background binding: {category}")
-              resources = re.findall(r"R\.drawable\.([A-Za-z0-9_]+)", match.group(1))
-              expected = [f"{stem(category)}_{i:02d}" for i in range(1, 6)]
-              if resources != expected:
-                  raise SystemExit(f"Category {category} backgrounds invalid: {resources}; expected {expected}")
-
-          definitions = t[t.index("val categoryDefinitions = listOf("):]
+              match=re.search(rf'"{re.escape(category)}"\s*->\s*listOf\(([^)]*)\)',m[m.index("private fun categoryBackgrounds"):])
+              if not match: raise SystemExit(f"Missing category background binding: {category}")
+              resources=re.findall(r"R\.drawable\.([A-Za-z0-9_]+)",match.group(1)); expected=[f"{stem(category)}_{i:02d}" for i in range(1,6)]
+              if resources!=expected: raise SystemExit(f"Category {category} backgrounds invalid: {resources}; expected {expected}")
+              for res in expected:
+                  if not (Path("HavilaTV/android/app/src/main/res/drawable-nodpi")/f"{res}.xml").is_file(): raise SystemExit(f"Missing background resource: {res}")
+              if not (Path("HavilaTV/android/app/src/main/res/drawable-nodpi")/f"{stem(category)}.xml").is_file(): raise SystemExit(f"Missing category logo resource: {stem(category)}")
+          definitions=t[t.index("val categoryDefinitions = listOf("):]
           for category in required:
-              match = re.search(rf'CategoryDef\("{re.escape(category)}".*?R\.drawable\.([A-Za-z0-9_]+)\)', definitions, re.S)
-              if not match:
-                  raise SystemExit(f"Missing category logo binding: {category}")
-              if match.group(1) != stem(category):
-                  raise SystemExit(f"Category {category} logo binding invalid: {match.group(1)}; expected {stem(category)}")
+              match=re.search(rf'CategoryDef\("{re.escape(category)}".*?R\.drawable\.([A-Za-z0-9_]+)\)',definitions,re.S)
+              if not match or match.group(1)!=stem(category): raise SystemExit(f"Invalid category logo binding: {category}")
+          if "categoryDefinitions.firstOrNull { it.name.equals(channel.category, ignoreCase = true) }?.logoRes" not in m: raise SystemExit("Channel category-logo fallback is not connected")
+          print(f"Complete catalog entries: {len(entries)}"); print(f"Unique channel IDs: {len(set(ids))}"); print(f"Entries with stream URL: {sum(bool(x.strip()) for x in streams)}"); print(f"Entries with direct logo URL: {sum(bool(x.strip()) for x in logos)}"); print(f"Entries using category-logo fallback: {sum(not bool(x.strip()) for x in logos)}"); print("Category logos: 7/7 dedicated"); print("Category carousels: 7/7 with exactly 5 dedicated images"); print("Home background: independent and preserved")
+          if duplicates: raise SystemExit("Duplicate IDs remain: "+", ".join(duplicates))
+          if any(not x.strip() for x in names): raise SystemExit("Blank channel name found")
+          if any(not x.strip() for x in streams): raise SystemExit("Missing stream URL")
 
-          logo_fallback_ok = (
-              "categoryDefinitions.firstOrNull { it.name.equals(channel.category, ignoreCase = true) }?.logoRes" in m
-              or "categoryDefinitions.firstOrNull { it.name == channel.category }?.logoRes" in m
-          )
-          if not logo_fallback_ok:
-              raise SystemExit("Channel category-logo fallback is not connected")
-
-          print(f"Complete catalog entries: {len(entries)}")
-          print(f"Unique channel IDs: {len(set(ids))}")
-          print(f"Entries with stream URL: {sum(bool(x.strip()) for x in streams)}")
-          print(f"Entries with direct logo URL: {sum(bool(x.strip()) for x in logos)}")
-          print(f"Entries using category-logo fallback: {sum(not bool(x.strip()) for x in logos)}")
-          print("Category logos: 7/7 dedicated")
-          print("Category carousels: 7/7 with exactly 5 dedicated images")
-          print("Home background: independent and preserved")
-
-          if duplicates:
-              raise SystemExit("Duplicate IDs remain: " + ", ".join(duplicates))
-          if any(not x.strip() for x in names):
-              raise SystemExit("Blank channel name found")
-          if any(not x.strip() for x in streams):
-              raise SystemExit("Missing stream URL")
-
-      - name: Commit repairs if source changed
+      - name: Commit repairs and category artwork if source changed
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add HavilaTV/android/app/src/main/java/com/havila/tv/ChannelRepository.kt HavilaTV/android/app/src/main/java/com/havila/tv/MainActivity.kt
+          git add HavilaTV/android/app/src/main/java/com/havila/tv/ChannelRepository.kt HavilaTV/android/app/src/main/java/com/havila/tv/MainActivity.kt HavilaTV/android/app/src/main/res/drawable-nodpi
           if git diff --cached --quiet; then
-            echo "No source repairs required."
+            echo "No source or artwork repairs required."
           else
-            git commit -m "Consolidate Havila TV channel repairs"
+            git commit -m "Consolidate Havila TV category artwork and channel repairs"
             git push origin HEAD:fix-havila-tv-channels
           fi
 
