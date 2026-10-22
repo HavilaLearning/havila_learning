@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: fix-havila-tv-channels
 
       - name: Validate channel repository
         shell: python
@@ -26,25 +28,44 @@ jobs:
 
           p = Path("app/src/main/java/com/havila/tv/ChannelRepository.kt")
           s = p.read_text(encoding="utf-8")
-          entries = re.findall(r'^\s*c\("([^"]+)"\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"', s, re.M)
+
+          # Canonical entries are c(id, name, category, subcategory, streamUrl[, logoUrl]).
+          entries = re.findall(
+              r'^\s*c\(\s*"([^"]+)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*(?:,\s*"([^"]*)")?\s*\)',
+              s,
+              re.M,
+          )
           if not entries:
               raise SystemExit("No canonical channel entries found")
 
           ids = [x[0] for x in entries]
           names = [x[1] for x in entries]
+          categories = [x[2] for x in entries]
+          stream_urls = [x[4] for x in entries]
+          logo_urls = [x[5] for x in entries]
+
           duplicates = sorted({x for x in ids if ids.count(x) > 1})
-          missing = [name for name in names if not name.strip()]
-          bad = [x[0] for x in entries if not x[4].strip()]
+          missing_names = [name for name in names if not name.strip()]
+          missing_streams = [ids[i] for i, url in enumerate(stream_urls) if not url.strip()]
+          missing_logos = [ids[i] for i, logo in enumerate(logo_urls) if not logo.strip()]
 
           print(f"Complete catalog entries found: {len(entries)}")
           print(f"Unique channel IDs: {len(set(ids))}")
-          print(f"Entries with stream URL: {len(entries)-len(bad)}")
-          print(f"Entries with logo field: {sum(1 for x in entries if 'logo' in s[s.find(x[0]):s.find(x[0])+500])}")
+          print(f"Entries with stream URL: {len(entries) - len(missing_streams)}")
+          print(f"Entries with direct logo URL: {len(entries) - len(missing_logos)}")
+          print(f"Entries using category-logo fallback: {len(missing_logos)}")
+          print(f"Duplicate IDs: {duplicates}")
+          if missing_logos:
+              print("Channels without direct logo URL (category fallback will be used):")
+              for channel_id in missing_logos:
+                  print(f"  - {channel_id}")
 
           if duplicates:
               raise SystemExit("Duplicate channel IDs: " + ", ".join(duplicates))
-          if missing:
+          if missing_names:
               raise SystemExit("Blank channel name found")
+          if missing_streams:
+              raise SystemExit("Missing stream URL: " + ", ".join(missing_streams))
 
       - name: Build complete APK
         run: |
