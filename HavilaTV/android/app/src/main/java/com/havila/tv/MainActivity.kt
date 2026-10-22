@@ -306,7 +306,14 @@ private fun ChannelGridCard(channel: Channel, context: Context, firstRequester: 
         when {
             local != null -> Image(painter = painterResource(id = local), contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit)
             !channel.logoUrl.isNullOrBlank() && !failed -> AsyncImage(model = channel.logoUrl, contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit, onError = { failed = true })
-            else -> Text(channelInitials(channel.name), color = White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+            else -> {
+                val categoryLogo = categoryDefinitions.firstOrNull { it.name.equals(channel.category, ignoreCase = true) }?.logoRes
+                if (categoryLogo != null) {
+                    Image(painter = painterResource(id = categoryLogo), contentDescription = channel.category, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit)
+                } else {
+                    Text(channelInitials(channel.name), color = White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+                }
+            }
         }
     }
 }
