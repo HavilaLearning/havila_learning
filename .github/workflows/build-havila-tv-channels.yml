@@ -192,18 +192,20 @@ jobs:
           test -f ./settings.gradle.kts
           test -f ./build.gradle.kts
           test -f ./app/build.gradle.kts
-          test -f ./gradlew
           test -f ./app/src/main/java/com/havila/tv/MainActivity.kt
           test -f ./app/src/main/java/com/havila/tv/PlayerActivity.kt
           test -f ./app/src/main/java/com/havila/tv/ChannelRepository.kt
 
-      - name: Make Gradle wrapper executable
-        working-directory: HavilaTV/android
-        run: chmod +x ./gradlew
+      - name: Install Gradle 8.13
+        working-directory: .
+        run: |
+          curl -fsSL https://services.gradle.org/distributions/gradle-8.13-bin.zip -o /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /tmp
+          echo "/tmp/gradle-8.13/bin" >> "$GITHUB_PATH"
 
       - name: Build complete debug APK
         working-directory: HavilaTV/android
-        run: ./gradlew --no-daemon assembleDebug --stacktrace
+        run: gradle --no-daemon assembleDebug --stacktrace
 
       - name: Verify APK exists
         working-directory: HavilaTV/android
