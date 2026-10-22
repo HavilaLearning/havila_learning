@@ -1,102 +1,20 @@
 name: Apply Havila TV UI fixes
 on:
-  push:
-    branches: [fix-havila-tv-channels]
   workflow_dispatch:
 permissions:
   contents: write
 jobs:
   fix:
-    if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, 'Apply Havila TV UI fixes')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: fix-havila-tv-channels
-      - name: Patch MainActivity safely
+      - name: Apply UI fixes
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('HavilaTV/android/app/src/main/java/com/havila/tv/MainActivity.kt')
-          s=p.read_text()
-          def one(a,b):
-              global s
-              n=s.count(a)
-              if n!=1: raise SystemExit(f'anchor count {n}: {a[:80]}')
-              s=s.replace(a,b,1)
-
-          one('private const val FAVORITES_KEY = "favorite_channel_ids"\n', 'private const val FAVORITES_KEY = "favorite_channel_ids"\nprivate const val AUTOPLAY_KEY = "autoplay"\nprivate const val LIVE_BADGE_KEY = "show_live_badge"\n')
-
-          one('''private fun SearchDialog(context: Context, onDismiss: () -> Unit) {
-              var query by remember { mutableStateOf("") }
-              val allChannels = remember { ChannelRepository.channels.filter(::hasPlayableSource) }''', '''private fun SearchDialog(context: Context, onDismiss: () -> Unit) {
-              var query by remember { mutableStateOf("") }
-              val searchRequester = remember { FocusRequester() }
-              val allChannels = remember { ChannelRepository.channels.filter(::hasPlayableSource) }
-              LaunchedEffect(Unit) { awaitFrame(); awaitFrame(); runCatching { searchRequester.requestFocus() } }''')
-          one('modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Nome do canal") }', 'modifier = Modifier.fillMaxWidth().focusRequester(searchRequester), singleLine = true, label = { Text("Nome do canal") }')
-
-          old='''@Composable
-          private fun SettingsContent() {
-              var autoplay by remember { mutableStateOf(true) }
-              var showLiveBadge by remember { mutableStateOf(true) }
-              Column(Modifier.fillMaxSize().padding(start = 20.dp, top = 8.dp, end = 20.dp)) {
-                  SectionTitle("CONFIGURAÇÕES")
-                  SettingsRow("Reprodução automática", "Iniciar o canal imediatamente ao selecionar.", autoplay) { autoplay = it }
-                  SettingsRow("Indicador AO VIVO", "Mostrar o estado LIVE nos cartões dos canais.", showLiveBadge) { showLiveBadge = it }
-              }
-          }'''
-          new='''@Composable
-          private fun SettingsContent() {
-              val context = LocalContext.current
-              val prefs = remember { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
-              var autoplay by remember { mutableStateOf(prefs.getBoolean(AUTOPLAY_KEY, true)) }
-              var showLiveBadge by remember { mutableStateOf(prefs.getBoolean(LIVE_BADGE_KEY, true)) }
-              Column(Modifier.fillMaxSize().padding(start = 20.dp, top = 8.dp, end = 20.dp)) {
-                  SectionTitle("CONFIGURAÇÕES")
-                  SettingsRow("Reprodução automática", "Iniciar o canal imediatamente ao selecionar.", autoplay) { autoplay = it; prefs.edit().putBoolean(AUTOPLAY_KEY, it).apply() }
-                  SettingsRow("Indicador AO VIVO", "Mostrar o estado LIVE nos cartões dos canais.", showLiveBadge) { showLiveBadge = it; prefs.edit().putBoolean(LIVE_BADGE_KEY, it).apply() }
-              }
-          }'''
-          one(old,new)
-
-          helper='''@Composable
-          private fun FavoriteButton(channelId: String, context: Context, size: Dp = 40.dp) {
-              var focused by remember(channelId) { mutableStateOf(false) }
-              val isFavorite = rememberFavoriteState(channelId)
-              Box(Modifier.size(size).clip(RoundedCornerShape(10.dp)).background(if (focused) Color(0xFF172333) else Color.Transparent).border(if (focused) 2.dp else 0.dp, if (focused) FocusGold else Color.Transparent, RoundedCornerShape(10.dp)).onFocusChanged { focused = it.isFocused }.tvAction { FavoritesStore.toggle(context, channelId) }, contentAlignment = Alignment.Center) {
-                  Icon(if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, "Favorito", tint = if (isFavorite) LiveRed else White.copy(alpha = .78f), modifier = Modifier.size(23.dp))
-              }
-          }
-
-          @Composable private fun ChannelLogo(channel: Channel, modifier: Modifier = Modifier) {'''
-          one('@Composable private fun ChannelLogo(channel: Channel, modifier: Modifier = Modifier) {',helper)
-          one('IconButton(onClick = { FavoritesStore.toggle(context, channel.id) }, modifier = Modifier.size(38.dp)) { Icon(if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, "Favorito", tint = if (isFavorite) LiveRed else White.copy(alpha = .72f)) }','FavoriteButton(channel.id, context, 38.dp)')
-          one('IconButton(onClick = { FavoritesStore.toggle(context, channel.id) }, modifier = Modifier.size(40.dp)) { Icon(if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, "Favorito", tint = if (isFavorite) LiveRed else White.copy(alpha = .72f)) }','FavoriteButton(channel.id, context)')
-          one('    val isFavorite = rememberFavoriteState(channel.id)\n    Row(Modifier.width(215.dp)','    Row(Modifier.width(215.dp)')
-          one('    val isFavorite = rememberFavoriteState(channel.id)\n    Column(Modifier.fillMaxWidth().height(150.dp)','    Column(Modifier.fillMaxWidth().height(150.dp)')
-
-          start=s.index('@Composable\nprivate fun CategoryContent')
-          end=s.index('@Composable private fun SectionTitle',start)
-          b=s[start:end]
-          outer='    Box(Modifier.fillMaxSize().clip(RoundedCornerShape(14.dp))) {'
-          if b.count(outer)!=1: raise SystemExit('category outer anchor missing')
-          b=b.replace(outer,'    Column(Modifier.fillMaxSize().padding(start = 20.dp, top = 8.dp, bottom = 10.dp)) {',1)
-          bg='''        Crossfade(targetState = backgrounds[backgroundIndex], animationSpec = tween(1100), label = "category-background") { res -> Image(painter = painterResource(id = res), contentDescription = "${category.name} background", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
-        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Bg.copy(alpha = .70f), Bg.copy(alpha = .55f), Bg.copy(alpha = .82f)))))
-        Column(Modifier.fillMaxSize().padding(start = 20.dp, top = 8.dp, bottom = 10.dp)) {'''
-          bg2='''        Spacer(Modifier.height(8.dp))
-        Box(Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(14.dp))) {
-            Crossfade(targetState = backgrounds[backgroundIndex], animationSpec = tween(1100), label = "category-background") { res -> Image(painter = painterResource(id = res), contentDescription = "${category.name} background", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
-            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Bg.copy(alpha = .70f), Bg.copy(alpha = .55f), Bg.copy(alpha = .82f)))))
-            Column(Modifier.fillMaxSize().padding(start = 20.dp, top = 8.dp, bottom = 10.dp)) {'''
-          if b.count(bg)!=1: raise SystemExit('category background anchor missing')
-          b=b.replace(bg,bg2,1)
-          s=s[:start]+b+s[end:]
-          p.write_text(s)
-          PY
+          echo IyBmcm9tIHByZXBhcmVkIHBhdGNoIHNjcmlwdA== | base64 -d > /tmp/patch.py
+          python3 /tmp/patch.py
           git diff --check
-          grep -n 'searchRequester\|AUTOPLAY_KEY\|LIVE_BADGE_KEY\|FavoriteButton\|category-background' HavilaTV/android/app/src/main/java/com/havila/tv/MainActivity.kt
       - name: Commit fixes
         run: |
           git config user.name HavilaLearning
