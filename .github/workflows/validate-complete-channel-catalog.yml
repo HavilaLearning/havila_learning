@@ -1,0 +1,62 @@
+name: Validate Complete Havila TV Catalog
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [fix-havila-tv-channels]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-catalog:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: HavilaTV/android
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate channel repository
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          p = Path("app/src/main/java/com/havila/tv/ChannelRepository.kt")
+          s = p.read_text(encoding="utf-8")
+          entries = re.findall(r'^\s*c\("([^"]+)"\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"', s, re.M)
+          if not entries:
+              raise SystemExit("No canonical channel entries found")
+
+          ids = [x[0] for x in entries]
+          names = [x[1] for x in entries]
+          duplicates = sorted({x for x in ids if ids.count(x) > 1})
+          missing = [name for name in names if not name.strip()]
+          bad = [x[0] for x in entries if not x[4].strip()]
+
+          print(f"Complete catalog entries found: {len(entries)}")
+          print(f"Unique channel IDs: {len(set(ids))}")
+          print(f"Entries with stream URL: {len(entries)-len(bad)}")
+          print(f"Entries with logo field: {sum(1 for x in entries if 'logo' in s[s.find(x[0]):s.find(x[0])+500])}")
+
+          if duplicates:
+              raise SystemExit("Duplicate channel IDs: " + ", ".join(duplicates))
+          if missing:
+              raise SystemExit("Blank channel name found")
+
+      - name: Build complete APK
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon assembleDebug --stacktrace
+
+      - name: Verify APK
+        run: test -s app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload complete APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: HavilaTV-complete-all-channels-debug-apk
+          path: HavilaTV/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
