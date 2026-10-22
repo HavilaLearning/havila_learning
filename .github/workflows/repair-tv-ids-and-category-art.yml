@@ -58,7 +58,7 @@ jobs:
 
           m = main.read_text(encoding="utf-8")
 
-          # Replace emoji category icons with the committed drawable logos.
+          # Replace old emoji category icons when that legacy block still exists.
           old_card = '''        Text(category.icon, color = if (selected) Color(0xFF10151C) else White, fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 13.dp))
 '''
           new_card = '''        Image(painter = painterResource(id = category.logoRes), contentDescription = category.name, modifier = Modifier.width(76.dp).height(48.dp).padding(start = 8.dp), contentScale = ContentScale.Fit)
@@ -66,8 +66,23 @@ jobs:
           if old_card in m:
               m = m.replace(old_card, new_card, 1)
 
+          # Give channels without a direct logo the logo of their Havila category.
+          old_fallback = '''            else -> Text(channelInitials(channel.name), color = White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+'''
+          new_fallback = '''            else -> {
+                val categoryLogo = categoryDefinitions.firstOrNull { it.name == channel.category }?.logoRes
+                if (categoryLogo != null) {
+                    Image(painter = painterResource(id = categoryLogo), contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit)
+                } else {
+                    Text(channelInitials(channel.name), color = White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+                }
+            }
+'''
+          if old_fallback in m:
+              m = m.replace(old_fallback, new_fallback, 1)
+
           # Category backgrounds are scoped to CategoryContent only. The Home
-          # hero/header is not modified by this binding.
+          # hero/header remains untouched.
           old_bg = '''private fun categoryBackgrounds(category: CategoryDefinition): List<Int> {
     val all = listOf(R.drawable.mozambique_baia_maputo, R.drawable.mozambique_cfm, R.drawable.mozambique_fortaleza, R.drawable.mozambique_ilha, R.drawable.mozambique_monumento, R.drawable.mozambique_ponte, R.drawable.mozambique_heritage01, R.drawable.mozambique_heritage02, R.drawable.mozambique_heritage03)
     val offset = categoryDefinitions.indexOfFirst { it.name == category.name }.coerceAtLeast(0)
@@ -90,14 +105,17 @@ jobs:
 
           main.write_text(m, encoding="utf-8")
 
-      - name: Verify repaired catalogue before commit
+      - name: Verify repaired catalogue and UI bindings
         shell: python
         run: |
           from pathlib import Path
           import re
 
-          p = Path("HavilaTV/android/app/src/main/java/com/havila/tv/ChannelRepository.kt")
-          s = p.read_text(encoding="utf-8")
+          repo = Path("HavilaTV/android/app/src/main/java/com/havila/tv/ChannelRepository.kt")
+          main = Path("HavilaTV/android/app/src/main/java/com/havila/tv/MainActivity.kt")
+          s = repo.read_text(encoding="utf-8")
+          m = main.read_text(encoding="utf-8")
+
           entries = re.findall(r'^\s*c\(\s*"([^"]+)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*(?:,\s*"([^"]*)")?\s*\)', s, re.M)
           ids = [x[0] for x in entries]
           if not entries:
@@ -105,17 +123,25 @@ jobs:
           duplicates = sorted({x for x in ids if ids.count(x) > 1})
           missing_names = [x[0] for x in entries if not x[1].strip()]
           missing_streams = [x[0] for x in entries if not x[4].strip()]
+          required_bg = [
+              "Notícias", "Gospel", "Desporto", "Filmes e Séries",
+              "Havila Kids", "Música e Entretenimento", "Família e Cultura"
+          ]
+          missing_bg = [name for name in required_bg if f'"{name}" -> listOf' not in m]
           print(f"Complete catalog entries: {len(entries)}")
           print(f"Unique channel IDs: {len(set(ids))}")
           print(f"Entries with stream URL: {len(entries) - len(missing_streams)}")
           print(f"Entries with direct logo URL: {sum(bool(x[5].strip()) for x in entries)}")
           print(f"Entries using category-logo fallback: {sum(not bool(x[5].strip()) for x in entries)}")
+          print(f"Category background bindings: {len(required_bg) - len(missing_bg)}/{len(required_bg)}")
           if duplicates:
               raise SystemExit("Duplicate IDs remain: " + ", ".join(duplicates))
           if missing_names:
               raise SystemExit("Blank channel name found: " + ", ".join(missing_names))
           if missing_streams:
               raise SystemExit("Missing stream URL: " + ", ".join(missing_streams))
+          if missing_bg:
+              raise SystemExit("Missing category background bindings: " + ", ".join(missing_bg))
 
       - name: Commit repairs
         shell: bash
