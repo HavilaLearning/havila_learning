@@ -26,51 +26,27 @@ jobs:
         run: |
           from pathlib import Path
           import re
-
-          # 1) Repair duplicate IDs in the canonical catalogue without deleting entries.
           catalog = Path("app/src/main/java/com/havila/tv/ChannelRepository.kt")
           lines = catalog.read_text(encoding="utf-8").splitlines(keepends=True)
-          seen = set()
-          counts = {}
-          changed = False
+          seen = set(); counts = {}
           pattern = re.compile(r'^(\s*c\(\s*")([^"]+)("\s*,)')
-
           for i, line in enumerate(lines):
               m = pattern.match(line)
-              if not m:
-                  continue
-              original = m.group(2)
-              candidate = original
+              if not m: continue
+              original = m.group(2); candidate = original
               if candidate in seen:
                   n = counts.get(original, 1) + 1
                   candidate = f"{original}-{n}"
                   while candidate in seen:
-                      n += 1
-                      candidate = f"{original}-{n}"
+                      n += 1; candidate = f"{original}-{n}"
                   lines[i] = line[:m.start(2)] + candidate + line[m.end(2):]
-                  changed = True
                   print(f"Repaired duplicate ID: {original} -> {candidate}")
               counts[original] = counts.get(original, 1) + 1
               seen.add(candidate)
-
           catalog.write_text("".join(lines), encoding="utf-8")
-          print("Catalog changed:" if changed else "Catalog IDs already unique.")
 
-          # 2) Connect the seven supplied category WebP logos to CategoryCard.
           main = Path("app/src/main/java/com/havila/tv/MainActivity.kt")
           s = main.read_text(encoding="utf-8")
-          old_category = 'Text(category.icon, color = if (selected) Color(0xFF10151C) else White, fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 13.dp))'
-          new_category = 'Image(painter = painterResource(id = category.logoRes), contentDescription = category.name, modifier = Modifier.size(42.dp).padding(start = 8.dp), contentScale = ContentScale.Fit)'
-          if old_category in s:
-              s = s.replace(old_category, new_category, 1)
-              changed = True
-              print("CategoryCard: WebP logo connected.")
-          elif new_category in s:
-              print("CategoryCard: WebP logo already connected.")
-          else:
-              raise SystemExit("CategoryCard logo code not found; stopping instead of making a blind edit.")
-
-          # 3) Use the category logo as a local fallback when a channel has no working logo URL.
           old_logo = '''        when {
             local != null -> Image(painter = painterResource(id = local), contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit)
             !channel.logoUrl.isNullOrBlank() && !failed -> AsyncImage(model = channel.logoUrl, contentDescription = channel.name, modifier = Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit, onError = { failed = true })
@@ -84,13 +60,11 @@ jobs:
         }'''
           if old_logo in s:
               s = s.replace(old_logo, new_logo, 1)
-              changed = True
-              print("ChannelLogo: category-logo fallback connected.")
+              print("ChannelLogo category fallback connected.")
           elif "categoryDefinitions.firstOrNull { it.name.equals(channel.category, ignoreCase = true) }?.logoRes" in s:
-              print("ChannelLogo: category-logo fallback already connected.")
+              print("ChannelLogo category fallback already connected.")
           else:
-              raise SystemExit("ChannelLogo code not found; stopping instead of making a blind edit.")
-
+              raise SystemExit("ChannelLogo source not found")
           main.write_text(s, encoding="utf-8")
 
       - name: Validate repaired source before committing
@@ -101,14 +75,13 @@ jobs:
           p = Path("app/src/main/java/com/havila/tv/ChannelRepository.kt")
           s = p.read_text(encoding="utf-8")
           entries = re.findall(r'^\s*c\(\s*"([^"]+)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*(?:,\s*"([^"]*)")?\s*\)', s, re.M)
-          ids = [x[0] for x in entries]
-          names = [x[1] for x in entries]
-          streams = [x[4] for x in entries]
+          ids = [x[0] for x in entries]; names = [x[1] for x in entries]; streams = [x[4] for x in entries]; logos = [x[5] for x in entries]
           duplicates = sorted({x for x in ids if ids.count(x) > 1})
           print(f"Complete catalog entries found: {len(entries)}")
           print(f"Unique channel IDs: {len(set(ids))}")
           print(f"Entries with stream URL: {sum(bool(x.strip()) for x in streams)}")
-          print(f"Entries with direct logo URL: {sum(bool(x[5].strip()) for x in entries)}")
+          print(f"Entries with direct logo URL: {sum(bool(x.strip()) for x in logos)}")
+          print(f"Entries using category-logo fallback: {sum(not x.strip() for x in logos)}")
           print(f"Duplicate IDs: {duplicates}")
           if not entries or duplicates or any(not x.strip() for x in names) or any(not x.strip() for x in streams):
               raise SystemExit("Catalog validation failed")
@@ -119,17 +92,19 @@ jobs:
           git config user.name HavilaLearning
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add app/src/main/java/com/havila/tv/ChannelRepository.kt app/src/main/java/com/havila/tv/MainActivity.kt
-          if git diff --cached --quiet; then
-            echo "No source changes to commit."
-          else
-            git commit -m "Fix Havila TV channel IDs and category logos"
-            git push origin HEAD:fix-havila-tv-channels
-          fi
+          if git diff --cached --quiet; then echo "No source changes to commit."; else git commit -m "Fix Havila TV channel IDs and category logos"; git push origin HEAD:fix-havila-tv-channels; fi
+
+      - name: Install Gradle 8.13
+        working-directory: .
+        run: |
+          curl -fsSL https://services.gradle.org/distributions/gradle-8.13-bin.zip -o /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /tmp
+          echo "/tmp/gradle-8.13/bin" >> "$GITHUB_PATH"
 
       - name: Compile repaired APK
         run: |
-          chmod +x ./gradlew
-          ./gradlew --no-daemon assembleDebug --stacktrace
+          gradle --version
+          gradle --no-daemon assembleDebug --stacktrace
 
       - name: Verify APK
         run: test -s app/build/outputs/apk/debug/app-debug.apk
