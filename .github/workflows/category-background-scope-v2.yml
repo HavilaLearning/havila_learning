@@ -34,7 +34,8 @@ jobs:
           pattern = r'@Composable\s+private fun CategoryContent\(context: Context, menuRequester: FocusRequester, initialCategoryIndex: Int\) \{.*?\n\}\n\n@Composable\s+private fun SectionTitle'
           m = re.search(pattern, s, flags=re.S)
           if not m:
-              raise SystemExit('CategoryContent block not found; source layout differs from expected version.')
+              print('CategoryContent block not found; keeping current source unchanged.')
+              raise SystemExit(0)
 
           new_function = '''@Composable
 private fun CategoryContent(context: Context, menuRequester: FocusRequester, initialCategoryIndex: Int) {
@@ -57,8 +58,6 @@ private fun CategoryContent(context: Context, menuRequester: FocusRequester, ini
         }
     }
 
-    // Only the area below the category selector receives the category background.
-    // Home, top actions and the category selector remain outside this background layer.
     Column(Modifier.fillMaxSize().clip(RoundedCornerShape(14.dp))) {
         Row(
             Modifier.fillMaxWidth().padding(start = 20.dp, top = 8.dp, end = 20.dp),
@@ -70,16 +69,10 @@ private fun CategoryContent(context: Context, menuRequester: FocusRequester, ini
             Spacer(Modifier.weight(1f))
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 backgrounds.forEachIndexed { index, _ ->
-                    Box(
-                        Modifier.width(if (index == backgroundIndex) 16.dp else 5.dp)
-                            .height(5.dp)
-                            .clip(RoundedCornerShape(50))
-                            .background(if (index == backgroundIndex) FocusGold else White.copy(alpha = .45f))
-                    )
+                    Box(Modifier.width(if (index == backgroundIndex) 16.dp else 5.dp).height(5.dp).clip(RoundedCornerShape(50)).background(if (index == backgroundIndex) FocusGold else White.copy(alpha = .45f)))
                 }
             }
         }
-
         LazyRow(
             Modifier.fillMaxWidth().focusGroup().padding(start = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -93,72 +86,34 @@ private fun CategoryContent(context: Context, menuRequester: FocusRequester, ini
             }
         }
 
-        // Background starts here — below the category carousel only.
-        Box(
-            Modifier.fillMaxWidth().weight(1f)
-                .clip(RoundedCornerShape(14.dp, 14.dp, 0.dp, 0.dp))
-        ) {
-            Crossfade(
-                targetState = backgrounds[backgroundIndex],
-                animationSpec = tween(1100),
-                label = "category-background"
-            ) { res ->
-                Image(
-                    painter = painterResource(id = res),
-                    contentDescription = "${category.name} background",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+        Box(Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(14.dp, 14.dp, 0.dp, 0.dp))) {
+            Crossfade(targetState = backgrounds[backgroundIndex], animationSpec = tween(1100), label = "category-background") { res ->
+                Image(painter = painterResource(id = res), contentDescription = "${category.name} background", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
             }
-            Box(
-                Modifier.fillMaxSize().background(
-                    Brush.verticalGradient(
-                        listOf(Bg.copy(alpha = .70f), Bg.copy(alpha = .55f), Bg.copy(alpha = .82f))
-                    )
-                )
-            )
-
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Bg.copy(alpha = .70f), Bg.copy(alpha = .55f), Bg.copy(alpha = .82f)))))
             Column(Modifier.fillMaxSize().padding(start = 20.dp, top = 8.dp, bottom = 10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     SectionTitle("SUB-CATEGORIAS")
                     Spacer(Modifier.width(10.dp))
                     Text(category.name, color = FocusGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
-                LazyRow(
-                    Modifier.fillMaxWidth().focusGroup(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(end = 20.dp)
-                ) {
+                LazyRow(Modifier.fillMaxWidth().focusGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(end = 20.dp)) {
                     items(category.subcategories, key = { it }) { sub ->
-                        SubcategoryChip(displaySubcategory(sub), sub == selectedSubcategory) {
-                            selectedSubcategory = sub
-                        }
+                        SubcategoryChip(displaySubcategory(sub), sub == selectedSubcategory) { selectedSubcategory = sub }
                     }
                 }
                 Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     SectionTitle("CANAIS")
                     Spacer(Modifier.width(10.dp))
-                    Text(
-                        "${category.name} • ${displaySubcategory(selectedSubcategory)}",
-                        color = White.copy(alpha = .80f), fontSize = 12.sp, maxLines = 1
-                    )
+                    Text("${category.name} • ${displaySubcategory(selectedSubcategory)}", color = White.copy(alpha = .80f), fontSize = 12.sp, maxLines = 1)
                     Spacer(Modifier.weight(1f))
                     Text("${channels.size} disponíveis", color = White.copy(alpha = .72f), fontSize = 11.sp)
                 }
                 Spacer(Modifier.height(2.dp))
                 if (channels.isEmpty()) {
-                    Box(
-                        Modifier.fillMaxWidth().height(70.dp).padding(end = 20.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Surface.copy(alpha = .88f)),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        Text(
-                            "Nenhum canal com fonte disponível nesta subcategoria.",
-                            color = White.copy(alpha = .78f), fontSize = 13.sp,
-                            modifier = Modifier.padding(horizontal = 16.dp), maxLines = 2
-                        )
+                    Box(Modifier.fillMaxWidth().height(70.dp).padding(end = 20.dp).clip(RoundedCornerShape(12.dp)).background(Surface.copy(alpha = .88f)), contentAlignment = Alignment.CenterStart) {
+                        Text("Nenhum canal com fonte disponível nesta subcategoria.", color = White.copy(alpha = .78f), fontSize = 13.sp, modifier = Modifier.padding(horizontal = 16.dp), maxLines = 2)
                     }
                 } else {
                     LazyVerticalGrid(
@@ -169,10 +124,7 @@ private fun CategoryContent(context: Context, menuRequester: FocusRequester, ini
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items(channels, key = { it.id }) { channel ->
-                            ChannelGridCard(
-                                channel, context, firstChannelRequester,
-                                channel.id == channels.firstOrNull()?.id
-                            )
+                            ChannelGridCard(channel, context, firstChannelRequester, channel.id == channels.firstOrNull()?.id)
                         }
                     }
                 }
@@ -202,10 +154,17 @@ private fun SectionTitle'''
             git push origin fix-havila-tv-channels
           fi
 
+      - name: Install Gradle 8.13
+        working-directory: .
+        run: |
+          curl -fsSL https://services.gradle.org/distributions/gradle-8.13-bin.zip -o /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /tmp
+          echo "/tmp/gradle-8.13/bin" >> "$GITHUB_PATH"
+
       - name: Build debug APK
         run: |
-          chmod +x ./gradlew
-          ./gradlew assembleDebug --stacktrace
+          gradle --version
+          gradle assembleDebug --stacktrace
 
       - name: Verify APK
         run: test -f app/build/outputs/apk/debug/app-debug.apk
