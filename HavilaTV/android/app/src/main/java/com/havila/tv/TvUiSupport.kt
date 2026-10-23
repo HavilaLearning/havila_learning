@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester as composeFocusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.draw.clip as composeClip
@@ -33,7 +34,10 @@ data class CategoryDef(
     val icon: String,
     val logoRes: Int,
     val backgroundRes: List<Int>
-)
+) {
+    // Kept only for source compatibility with older UI code; it renders no artwork.
+    val art: Brush get() = Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
+}
 
 val heroSlides = listOf(
     HeroSlide("Baía de Maputo", R.drawable.mozambique_baia_maputo),
@@ -49,31 +53,17 @@ val heroSlides = listOf(
 
 /**
  * Approved Havila TV category artwork.
- * Each category uses its own approved logo and five approved photographic
- * backgrounds. No vector category logo or generated gradient artwork is used.
+ * Each category uses its own approved image logo and five approved image backgrounds.
+ * No category vector logo and no generated gradient artwork is used as visible art.
  */
 val categoryDefinitions = listOf(
-    CategoryDef("Notícias", listOf("News", "Weather", "Business", "Legislative", "Public", "General"), "📰", R.drawable.noticias, listOf(
-        R.drawable.noticias_01, R.drawable.noticias_02, R.drawable.noticias_03, R.drawable.noticias_04, R.drawable.noticias_05
-    )),
-    CategoryDef("Desporto", listOf("Sports", "Auto", "Outdoor"), "⚽", R.drawable.desporto, listOf(
-        R.drawable.desporto_01, R.drawable.desporto_02, R.drawable.desporto_03, R.drawable.desporto_04, R.drawable.desporto_05
-    )),
-    CategoryDef("Gospel", listOf("Religious"), "✝", R.drawable.gospel, listOf(
-        R.drawable.gospel_01, R.drawable.gospel_02, R.drawable.gospel_03, R.drawable.gospel_04, R.drawable.gospel_05
-    )),
-    CategoryDef("Filmes", listOf("Movies", "Series", "Classic"), "🎬", R.drawable.filmes, listOf(
-        R.drawable.filmes_01, R.drawable.filmes_02, R.drawable.filmes_03, R.drawable.filmes_04, R.drawable.filmes_05
-    )),
-    CategoryDef("Música", listOf("Music", "Entertainment", "Comedy", "Interactive", "Relax"), "🎵", R.drawable.musica, listOf(
-        R.drawable.musica_01, R.drawable.musica_02, R.drawable.musica_03, R.drawable.musica_04, R.drawable.musica_05
-    )),
-    CategoryDef("Havila Kids", listOf("Kids", "Animation"), "👧", R.drawable.havila_kids, listOf(
-        R.drawable.havila_kids_01, R.drawable.havila_kids_02, R.drawable.havila_kids_03, R.drawable.havila_kids_04, R.drawable.havila_kids_05
-    )),
-    CategoryDef("Família", listOf("Family", "Culture", "Documentary", "Education", "Science", "Lifestyle", "Cooking", "Travel", "Shop"), "👨‍👩‍👧", R.drawable.familia, listOf(
-        R.drawable.familia_01, R.drawable.familia_02, R.drawable.familia_03, R.drawable.familia_04, R.drawable.familia_05
-    ))
+    CategoryDef("Notícias", listOf("News", "Weather", "Business", "Legislative", "Public", "General"), "📰", R.drawable.noticias, listOf(R.drawable.noticias_01, R.drawable.noticias_02, R.drawable.noticias_03, R.drawable.noticias_04, R.drawable.noticias_05)),
+    CategoryDef("Desporto", listOf("Sports", "Auto", "Outdoor"), "⚽", R.drawable.desporto, listOf(R.drawable.desporto_01, R.drawable.desporto_02, R.drawable.desporto_03, R.drawable.desporto_04, R.drawable.desporto_05)),
+    CategoryDef("Gospel", listOf("Religious"), "✝", R.drawable.gospel, listOf(R.drawable.gospel_01, R.drawable.gospel_02, R.drawable.gospel_03, R.drawable.gospel_04, R.drawable.gospel_05)),
+    CategoryDef("Filmes", listOf("Movies", "Series", "Classic"), "🎬", R.drawable.filmes, listOf(R.drawable.filmes_01, R.drawable.filmes_02, R.drawable.filmes_03, R.drawable.filmes_04, R.drawable.filmes_05)),
+    CategoryDef("Música", listOf("Music", "Entertainment", "Comedy", "Interactive", "Relax"), "🎵", R.drawable.musica, listOf(R.drawable.musica_01, R.drawable.musica_02, R.drawable.musica_03, R.drawable.musica_04, R.drawable.musica_05)),
+    CategoryDef("Havila Kids", listOf("Kids", "Animation"), "👧", R.drawable.havila_kids, listOf(R.drawable.havila_kids_01, R.drawable.havila_kids_02, R.drawable.havila_kids_03, R.drawable.havila_kids_04, R.drawable.havila_kids_05)),
+    CategoryDef("Família", listOf("Family", "Culture", "Documentary", "Education", "Science", "Lifestyle", "Cooking", "Travel", "Shop"), "👨‍👩‍👧", R.drawable.familia, listOf(R.drawable.familia_01, R.drawable.familia_02, R.drawable.familia_03, R.drawable.familia_04, R.drawable.familia_05))
 )
 
 fun categoryBackgrounds(category: CategoryDefinition): List<Int> = category.backgroundRes
