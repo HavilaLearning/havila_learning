@@ -17,16 +17,16 @@
 <link rel="stylesheet" href="/styles.css">
 <link rel="icon" href="/assets/havila-learning-logo.png">
 <style>
-.age3-activity{padding:0;overflow:hidden;align-self:stretch}
-.age3-activity>summary{display:block;list-style:none;cursor:pointer;padding:26px;min-height:100%;box-sizing:border-box}
-.age3-activity>summary::-webkit-details-marker{display:none}
-.age3-activity>summary .icon{margin:0 0 22px 0}
-.age3-title{font-size:1.15rem;line-height:1.35;font-weight:800;color:var(--navy);margin:0 0 18px}
-.age3-description{font-size:1.02rem;line-height:1.65;color:var(--muted);margin:0}
-.age3-activity[open]>summary{border-bottom:1px solid var(--line);background:#f8fcfa;min-height:0}
-.age3-content{padding:18px 26px 26px}
-.age3-content p{color:var(--muted);margin:.65rem 0;line-height:1.65}
-.age3-content strong{color:var(--navy)}
+details.age3-activity{display:block;padding:0;overflow:hidden;align-self:stretch}
+details.age3-activity>summary{display:block;list-style:none;cursor:pointer;padding:26px;min-height:100%;box-sizing:border-box;user-select:none}
+details.age3-activity>summary::-webkit-details-marker{display:none}
+details.age3-activity>summary .icon{margin:0 0 22px 0}
+details.age3-activity .age3-title{font-size:1.15rem;line-height:1.35;font-weight:800;color:var(--navy);margin:0 0 18px}
+details.age3-activity .age3-description{font-size:1.02rem;line-height:1.65;color:var(--muted);margin:0}
+details.age3-activity[open]>summary{border-bottom:1px solid var(--line);background:#f8fcfa;min-height:0}
+details.age3-activity .age3-content{display:block;padding:18px 26px 26px}
+details.age3-activity .age3-content p{color:var(--muted);margin:.65rem 0;line-height:1.65}
+details.age3-activity .age3-content strong{color:var(--navy)}
 </style></head>
 
 <body>
@@ -108,10 +108,18 @@
 </footer>
 <script src="/script.js"></script>
 <script>
-document.querySelectorAll("details.age3-activity").forEach(function(item){
- item.addEventListener("toggle",function(){
-  if(item.open){document.querySelectorAll("details.age3-activity").forEach(function(other){if(other!==item)other.open=false;});}
+(function(){
+ const cards=Array.from(document.querySelectorAll("details.age3-activity"));
+ cards.forEach(function(card){
+  const trigger=card.querySelector("summary");
+  if(!trigger) return;
+  trigger.addEventListener("click",function(event){
+   event.preventDefault();
+   const shouldOpen=!card.open;
+   cards.forEach(function(other){other.open=false;});
+   card.open=shouldOpen;
+  });
  });
-});
+})();
 </script></body>
 </html>
